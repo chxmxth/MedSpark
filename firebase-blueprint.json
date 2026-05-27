@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "Information about the professional resident or adviser using the system.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email", "description": "The user's contact email address" },
+        "firstName": { "type": "string", "description": "User's first name" },
+        "lastName": { "type": "string", "description": "User's last name" },
+        "role": { "type": "string", "enum": ["student", "pro", "faculty"], "description": "Professional licensing or training stage role" },
+        "casesCompleted": { "type": "integer", "description": "Number of cases simulated" },
+        "assistantQueriesUsed": { "type": "integer", "description": "Count of clinical searches evaluated" },
+        "subscriptionActive": { "type": "boolean", "description": "Whether billing model is verified" },
+        "subscriptionPlan": { "type": "string", "enum": ["Free Tier", "Resident Pro", "Faculty Advisor"], "description": "Current active RevenueCat package plan" }
+      },
+      "required": ["email", "firstName", "lastName", "role", "casesCompleted", "assistantQueriesUsed", "subscriptionActive", "subscriptionPlan"]
+    },
+    "caseEvaluation": {
+      "title": "CaseEvaluation",
+      "description": "Performance assessment records and examiner notes written by the board evaluation processor.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique evaluation record entry" },
+        "caseName": { "type": "string", "description": "Name of clinical scenario" },
+        "caseId": { "type": "string", "description": "Target case identification seed" },
+        "patientName": { "type": "string", "description": "Name of simulated patient" },
+        "studentSubmission": {
+          "type": "object",
+          "properties": {
+            "historyFindings": { "type": "string" },
+            "physicalFindings": { "type": "string" },
+            "differentialDiagnosis": { "type": "string" },
+            "finalDiagnosis": { "type": "string" },
+            "managementPlan": { "type": "string" }
+          },
+          "required": ["historyFindings", "physicalFindings", "differentialDiagnosis", "finalDiagnosis", "managementPlan"]
+        },
+        "aiFeedback": {
+          "type": "object",
+          "properties": {
+            "overallFeedback": { "type": "string" },
+            "historyRating": { "type": "integer" },
+            "examRating": { "type": "integer" },
+            "diagnosticRating": { "type": "integer" },
+            "managementRating": { "type": "integer" },
+            "strengths": { "type": "array" },
+            "weaknesses": { "type": "array" }
+          },
+          "required": ["overallFeedback", "historyRating", "examRating", "diagnosticRating", "managementRating", "strengths", "weaknesses"]
+        },
+        "score": { "type": "integer", "description": "Simulated board examiner score (0-100)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Submission UTC time tracker" }
+      },
+      "required": ["id", "caseName", "caseId", "patientName", "studentSubmission", "aiFeedback", "score", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "userProfile",
+      "description": "Document tracking the user status, role, plans, and metrics tracking"
+    },
+    "users/{userId}/evaluations/{evalId}": {
+      "schema": "caseEvaluation",
+      "description": "Structured Board OSCE reports completed per user"
+    }
+  }
+}

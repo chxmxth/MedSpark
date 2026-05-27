@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // User Profile Validation Helper
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['email', 'firstName', 'lastName', 'role', 'casesCompleted', 'assistantQueriesUsed', 'subscriptionActive', 'subscriptionPlan'])
+          && data.keys().size() == 8
+          && data.email is string && data.email.size() <= 200
+          && data.firstName is string && data.firstName.size() <= 100
+          && data.lastName is string && data.lastName.size() <= 100
+          && data.role is string && (data.role == "student" || data.role == "pro" || data.role == "faculty")
+          && data.casesCompleted is int
+          && data.assistantQueriesUsed is int
+          && data.subscriptionActive is bool
+          && data.subscriptionPlan is string && (data.subscriptionPlan == "Free Tier" || data.subscriptionPlan == "Resident Pro" || data.subscriptionPlan == "Faculty Advisor");
+    }
+
+    // Case Evaluation Validation Helper
+    function isValidCaseEvaluation(data) {
+      return data.keys().hasAll(['id', 'caseName', 'caseId', 'patientName', 'studentSubmission', 'aiFeedback', 'score', 'createdAt'])
+          && data.keys().size() == 8
+          && data.id is string && data.id.size() <= 128
+          && data.caseName is string && data.caseName.size() <= 256
+          && data.caseId is string && data.caseId.size() <= 128
+          && data.patientName is string && data.patientName.size() <= 256
+          && data.studentSubmission is map
+          && data.aiFeedback is map
+          && data.score is int && data.score >= 0 && data.score <= 100
+          && data.createdAt is string && data.createdAt.size() <= 128;
+    }
+
+    // Collection Security Match Rules
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data);
+      allow delete: if false;
+
+      match /evaluations/{evalId} {
+        allow get, list: if isOwner(userId) && isValidId(userId) && isValidId(evalId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(evalId) && isValidCaseEvaluation(request.resource.data);
+        allow update, delete: if false; // Evaluations are immutable
+      }
+    }
+  }
+}
