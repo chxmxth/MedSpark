@@ -1,0 +1,51 @@
+default_platform(:android)
+
+platform :android do
+  desc "Build and submit Android app to Google Play Store"
+  lane :playstore do
+    # Requires base64 encoded keystore and properties to be injected by CI
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android"
+    )
+
+    supply(
+      track: "production",
+      aab: "android/app/build/outputs/bundle/release/app-release.aab"
+    )
+  end
+end
+
+platform :ios do
+  desc "Build and submit iOS app to Apple App Store"
+  lane :appstore do
+    # Setup App Store Connect API Key for authentication
+    app_store_connect_api_key(
+      key_id: ENV["ASC_KEY_ID"],
+      issuer_id: ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_FILEPATH"],
+      in_house: false
+    )
+
+    # Download signing certificates
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: "com.medispark.app",
+      git_url: ENV["MATCH_GIT_URL"]
+    )
+
+    build_app(
+      scheme: "App",
+      project: "ios/App/App.xcodeproj",
+      export_method: "app-store",
+      clean: true
+    )
+
+    upload_to_app_store(
+      skip_screenshots: true,
+      skip_metadata: true
+    )
+  end
+end
