@@ -15,8 +15,9 @@ export function getApiUrl(path: string): string {
       const sanitizedHost = customHost.endsWith("/") ? customHost.slice(0, -1) : customHost;
       return `${sanitizedHost}${formattedPath}`;
     }
-    // Default to our deployment URL so the Android app works out-of-the-box with the live backend
-    const prodUrl = "https://ais-pre-cruun4mnfixl3rrlflmaov-39922660239.asia-southeast1.run.app";
+    // Default to our deployment URL so the Android/iOS apps work out-of-the-box with the live backend
+    // Updated to the user's specific domain
+    const prodUrl = "https://medispark.com";
     return `${prodUrl}${formattedPath}`;
   }
 

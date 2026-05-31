@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+android/app/src/main/assets/public
+ios/App/App/public
+fastlane/play_store_key.json
+fastlane/asc_key.p8
