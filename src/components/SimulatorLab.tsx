@@ -33,6 +33,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
   const [casesList, setCasesList] = useState<PatientCase[]>(PRESET_CASES);
   const [selectedCaseId, setSelectedCaseId] = useState<string>("john-doe-65");
   const caseData = casesList.find(c => c.id === selectedCaseId) || casesList[0];
+  const [isHpiExpanded, setIsHpiExpanded] = useState(false);
 
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
   const [generationType, setGenerationType] = useState<"short" | "long" | null>(null);
@@ -127,6 +128,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
     setSelectedDiagnosticData(null);
     setShowPhysicalExamResults(false);
     setEvaluationResult(null);
+    setIsHpiExpanded(false);
 
     // Form states reset
     setHistoryFindings("");
@@ -411,10 +413,31 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
             </div>
           </div>
           <div className="p-4 bg-slate-950/20">
-            <h4 className="text-[10px] font-black text-slate-500 uppercase font-mono mb-1.5">Chief Complaint Presenting History</h4>
-            <p className="text-xs text-slate-350 leading-relaxed line-clamp-3 hover:line-clamp-none transition-all duration-300 cursor-pointer">
+            <div className="flex justify-between items-center mb-1.5 gap-2">
+              <h4 className="text-[10px] font-black text-slate-500 uppercase font-mono">Chief Complaint Presenting History</h4>
+              <button 
+                onClick={() => setIsHpiExpanded(!isHpiExpanded)}
+                className="text-[9px] font-mono uppercase bg-slate-900 hover:bg-slate-850 border border-slate-800 text-emerald-400 hover:text-emerald-300 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer flex items-center shrink-0"
+              >
+                {isHpiExpanded ? "Collapse" : "Expand"}
+              </button>
+            </div>
+            <p 
+              onClick={() => setIsHpiExpanded(!isHpiExpanded)}
+              className={`text-xs text-slate-350 leading-relaxed cursor-pointer transition-all duration-300 ${
+                isHpiExpanded ? "" : "line-clamp-3 md:hover:line-clamp-none"
+              }`}
+            >
               {caseData.historyOfPresentIllness}
             </p>
+            {!isHpiExpanded && (
+              <div 
+                onClick={() => setIsHpiExpanded(true)}
+                className="text-[9px] text-slate-500 italic mt-1.5 cursor-pointer hover:text-slate-400 select-none text-center"
+              >
+                Click / Tap to view full history
+              </div>
+            )}
           </div>
         </div>
 
