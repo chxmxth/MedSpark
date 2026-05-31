@@ -28,12 +28,25 @@ jobs:
         with:
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker Auth
+        run: gcloud auth configure-docker asia-southeast1-docker.pkg.dev
+
+      - name: Build and Push Docker Image
+        env:
+          IMAGE_NAME: asia-southeast1-docker.pkg.dev/medispark-498009/cloud-run-source-deploy/medispark-api
+        run: |
+          docker build -t $IMAGE_NAME:${{ github.sha }} .
+          docker push $IMAGE_NAME:${{ github.sha }}
+
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: medispark-api
           region: asia-southeast1
-          source: ./
+          image: asia-southeast1-docker.pkg.dev/medispark-498009/cloud-run-source-deploy/medispark-api:${{ github.sha }}
           env_vars: |
             GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             REVENUECAT_SECRET_KEY=${{ secrets.REVENUECAT_SECRET_KEY }}
