@@ -16,6 +16,7 @@ RUN npm run build
 FROM node:22-alpine
 
 WORKDIR /app
+ENV NODE_ENV=production
 
 # Copy the built artifacts and production dependencies
 COPY --from=builder /app/dist ./dist
