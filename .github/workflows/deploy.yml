@@ -47,6 +47,7 @@ jobs:
           service: medispark-api
           region: asia-southeast1
           image: asia-southeast1-docker.pkg.dev/medispark-498009/cloud-run-source-deploy/medispark-api:${{ github.sha }}
+          flags: '--allow-unauthenticated'
           env_vars: |
             GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
             REVENUECAT_SECRET_KEY=${{ secrets.REVENUECAT_SECRET_KEY }}
