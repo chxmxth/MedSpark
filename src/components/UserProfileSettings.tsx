@@ -64,13 +64,21 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
     try {
       await signInWithGoogle();
     } catch (error) {
-      alert("Authentication failed. Please verify your settings or try again.");
+      console.error(error);
+      alert("Authentication failed. Please verify your settings or try again. If on localhost, verify your domain is whitelisted in Firebase Console.\n\nDetailed error: " + (error.message || error));
     }
   };
 
   const handleCredentialsAuth = (e: React.FormEvent) => {
     e.preventDefault();
     alert("Guest system mock credentials active. Please use the Google SSO option to enable real Firebase Database Cloud Sync!");
+    setFirebaseUser({
+      uid: 'guest-' + Date.now(),
+      email: emailInput || 'guest@example.com',
+      displayName: 'Guest User',
+      isAnonymous: true,
+      emailVerified: false,
+    } as any);
   };
 
   // Upgraders for RevenueCat sub simulation

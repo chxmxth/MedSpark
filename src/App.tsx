@@ -175,7 +175,7 @@ export default function App() {
 
 
   return (
-    <div className="bg-[#050608] min-h-screen text-slate-100 antialiased font-sans flex flex-col md:flex-row pb-20 md:pb-0 selection:bg-emerald-500/30">
+    <div className="bg-[#050608] min-h-screen w-full text-slate-100 antialiased font-sans flex flex-col md:flex-row pb-20 md:pb-0 selection:bg-emerald-500/30">
       
       {/* 1. TOP BAR Shell: Mobile-only */}
       <header className="md:hidden fixed top-0 left-0 w-full bg-[#0A0C10] border-b border-slate-800/60 h-16 px-4 z-50 flex items-center justify-between text-white">
