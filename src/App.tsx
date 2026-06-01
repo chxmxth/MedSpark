@@ -286,36 +286,36 @@ export default function App() {
 
         {/* Main Canvas view area */}
         <div className="flex-grow p-4 md:p-8 max-w-7xl w-full mx-auto">
-          {activeTab === "lab" && (
+          <div className={activeTab === "lab" ? "block" : "hidden"}>
             <SimulatorLab 
               onEvaluationCompleted={handleCompleteCase}
               userProfile={userProfile}
               decreaseAvailableCases={decreaseAvailableCases}
               onUpgrade={() => setActiveTab("profile")}
             />
-          )}
+          </div>
 
-          {activeTab === "assistant" && (
+          <div className={activeTab === "assistant" ? "block" : "hidden"}>
             <ClinicalAssistant 
               decreaseAssistantQueries={decreaseAssistantQueries}
               userProfile={userProfile}
             />
-          )}
+          </div>
 
-          {activeTab === "history" && (
+          <div className={activeTab === "history" ? "block" : "hidden"}>
             <HistoryFeed 
               evaluations={caseHistory} 
               userProfile={userProfile}
               onUpgrade={() => setActiveTab("profile")}
             />
-          )}
+          </div>
 
-          {activeTab === "profile" && (
+          <div className={activeTab === "profile" ? "block" : "hidden"}>
             <UserProfileSettings 
               profile={userProfile} 
               onChangeProfile={handleUpdateProfile} 
             />
-          )}
+          </div>
         </div>
 
       </main>
