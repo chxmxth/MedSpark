@@ -324,7 +324,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
   const respRateHigh = caseData.vitals.respRate > 20;
 
   return (
-    <div className="flex flex-col xl:flex-row gap-6 max-w-full">
+    <div className="flex flex-col xl:flex-row gap-6 max-w-full xl:min-w-0">
       {/* LEFT SIDE: Clinical Case Dashboard (Vitals, ECG Monitors) */}
       <div className="w-full xl:w-[380px] shrink-0 flex flex-col gap-6">
         
@@ -506,7 +506,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
       </div>
 
       {/* CENTER: Simulated Conversation Console & Submissions */}
-      <div className="flex-grow flex flex-col bg-[#0A0C10] border border-slate-800/60 rounded-xl shadow-lg overflow-hidden min-h-[580px]">
+      <div className="flex-grow flex flex-col min-w-0 bg-[#0A0C10] border border-slate-800/60 rounded-xl shadow-lg overflow-hidden min-h-[580px]">
         {/* Interaction Header */}
         <div className="p-4 bg-slate-950/40 border-b border-slate-800/50 flex items-center justify-between">
           <div className="flex items-center gap-2">
