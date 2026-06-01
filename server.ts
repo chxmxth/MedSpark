@@ -477,17 +477,70 @@ Your output must be a single JSON object conforming exactly to this TypeScript i
 
 Output ONLY valid, parsed JSON. Do NOT wrap it in "json" code block quotes \`\`\`. Start with { and end with } only.`;
 
-    const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: promptText,
-      config: {
-        systemInstruction: systemPrompt,
-        temperature: 0.8,
-        responseMimeType: "application/json"
-      }
-    });
+    let textResponse = "{}";
+    let success = false;
+    let retries = 3;
+    let delay = 1000;
 
-    const textResponse = response.text?.trim() || "{}";
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await client.models.generateContent({
+          model: "gemini-3.5-flash",
+          contents: promptText,
+          config: {
+            systemInstruction: systemPrompt,
+            temperature: 0.8,
+            responseMimeType: "application/json"
+          }
+        });
+        textResponse = response.text?.trim() || "{}";
+        success = true;
+        break;
+      } catch (genErr: any) {
+        console.warn(`Attempt ${i + 1} failed generating UMLS case:`, genErr.message || genErr);
+        const errObj = genErr.error || genErr;
+        const isTransient = errObj.status === 503 || errObj.code === 503 || errObj.status === "UNAVAILABLE" || genErr.message?.includes("503") || genErr.message?.toLowerCase().includes("unavailable") || genErr.message?.toLowerCase().includes("high demand") || genErr.message?.toLowerCase().includes("overloaded");
+        if (isTransient && i < retries - 1) {
+          await new Promise(res => setTimeout(res, delay));
+          delay *= 2;
+        } else {
+          break;
+        }
+      }
+    }
+
+    if (!success) {
+      console.warn("Falling back to default offline UMLS case due to Gemini generation failure.");
+      const fallbackCase = {
+        id: generatedId,
+        name: "Simulated Patient (Offline)",
+        age: 45,
+        gender: "M",
+        complaint: `Presents with symptoms of ${umlsTerm}`,
+        avatar: maleAvatars[0],
+        historyOfPresentIllness: `Patient presents with sudden onset of symptoms indicative of ${umlsTerm}. Symptoms have progressively worsened over the past 24 hours. Note: This is an offline fallback case due to AI generation timeout.`,
+        vitals: { heartRate: 85, bloodPressure: "130/85", oxygenSat: 96, respRate: 18 },
+        ecgDescription: "Sinus rhythm, no acute ischemic changes.",
+        labs: {
+          fbc: "White blood cell count mildly elevated.",
+          ue: "Electrolytes within normal limits.",
+          lft: "Liver enzymes within normal limits.",
+          troponin: "Negative."
+        },
+        imaging: {
+          cxr: "Clear lung fields, no cardiomegaly.",
+          ct: "No acute abnormalities detected."
+        },
+        physicalExamPrompt: "Patient is alert and oriented. Mild distress. Auscultation reveals normal heart sounds and clear lungs.",
+        correctAnswers: {
+          differential: [umlsTerm, "Other possible diagnosis"],
+          finalDiagnosis: umlsTerm,
+          management: ["Provide supportive care", "Monitor vitals", "Consider specialist consultation"]
+        }
+      };
+      return res.json(fallbackCase);
+    }
+
     let cleanJson = textResponse;
     if (cleanJson.startsWith("```json")) {
       cleanJson = cleanJson.slice(7);
