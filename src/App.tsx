@@ -255,7 +255,7 @@ export default function App() {
       </nav>
 
       {/* 3. MAIN CONTENT LAYER Panel (Offsets Desktop Sidebar) */}
-      <main className="flex-grow md:ml-64 flex flex-col min-h-screen pt-16 md:pt-0">
+      <main className="flex-grow md:ml-64 flex flex-col min-h-screen pt-16 md:pt-0 min-w-0">
         
         {/* Core Header Banner breadcrumb */}
         <div className="hidden md:flex justify-between items-center bg-[#0A0C10] border-b border-slate-800/50 p-6 shadow-md shrink-0">
