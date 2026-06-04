@@ -18,8 +18,12 @@ import {
   Flame,
   RotateCcw,
   Lock,
-  ShieldAlert
+  ShieldAlert,
+  Mic,
+  MicOff
 } from "lucide-react";
+import { SpeechRecognition } from "@capacitor-community/speech-recognition";
+import { TextToSpeech } from "@capacitor-community/text-to-speech";
 
 interface LabProps {
   onEvaluationCompleted: (evaluation: CaseEvaluation) => void;
@@ -88,9 +92,18 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
 
   // Chat conversation state
   const [messages, setMessages] = useState<Message[]>([]);
+  const messagesRef = useRef<Message[]>([]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
   const [inputMessage, setInputMessage] = useState("");
   const [isPatientTyping, setIsPatientTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Voice state
+  const [isListening, setIsListening] = useState(false);
 
   // Diagnostic states
   const [orderedDiagnostics, setOrderedDiagnostics] = useState<{ [key: string]: "pending" | "completed" }>({});
@@ -152,10 +165,69 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
     "Do you have any swelling in your body?"
   ];
 
+  const startListening = async () => {
+    try {
+      const { speechRecognition } = await SpeechRecognition.checkPermissions();
+      if (speechRecognition !== 'granted') {
+        const req = await SpeechRecognition.requestPermissions();
+        if (req.speechRecognition !== 'granted') {
+          alert('Speech recognition permission denied.');
+          return;
+        }
+      }
+
+      setIsListening(true);
+      await SpeechRecognition.start({
+        language: "en-US",
+        maxResults: 1,
+        prompt: "Say something",
+        partialResults: false,
+        popup: false,
+      });
+
+      SpeechRecognition.addListener('partialResults', (data: any) => {
+        if (data.matches && data.matches.length > 0) {
+          setInputMessage(data.matches[0]);
+          setIsListening(false);
+          handleSendChat(data.matches[0]);
+          SpeechRecognition.removeAllListeners();
+        }
+      });
+    } catch (e) {
+      console.error(e);
+      alert("Speech recognition is not available or failed.");
+      setIsListening(false);
+    }
+  };
+
+  const stopListening = async () => {
+    try {
+      await SpeechRecognition.stop();
+      setIsListening(false);
+      SpeechRecognition.removeAllListeners();
+    } catch (e) {
+      console.error(e);
+      setIsListening(false);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
   // Handle typing send
   const handleSendChat = async (textToSend?: string) => {
     const rawText = textToSend || inputMessage;
     if (!rawText.trim() || isPatientTyping) return;
+
+    // Stop listening if it was active
+    if (isListening) {
+        stopListening();
+    }
 
     // Build message
     const userMsg: Message = {
@@ -175,7 +247,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           caseContext: caseData,
-          messages: messages,
+          messages: messagesRef.current,
           latestMessage: rawText,
         }),
       });
@@ -188,6 +260,20 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, patientResponse]);
+
+      try {
+        await TextToSpeech.speak({
+          text: patientResponse.text,
+          lang: 'en-US',
+          rate: 1.0,
+          pitch: 1.0,
+          volume: 1.0,
+          category: 'ambient',
+        });
+        startListening();
+      } catch(ttsError) {
+        console.error("TTS error:", ttsError);
+      }
     } catch (err) {
       console.error(err);
       const errResponse: Message = {
@@ -197,6 +283,20 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages((prev) => [...prev, errResponse]);
+
+      try {
+        await TextToSpeech.speak({
+          text: errResponse.text,
+          lang: 'en-US',
+          rate: 1.0,
+          pitch: 1.0,
+          volume: 1.0,
+          category: 'ambient',
+        });
+        startListening();
+      } catch(ttsError) {
+        console.error("TTS error:", ttsError);
+      }
     } finally {
       setIsPatientTyping(false);
     }
@@ -618,6 +718,17 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
                 }
               }}
             />
+            <button
+              onClick={toggleListening}
+              className={`p-3 border rounded-xl transition-all shadow-md shrink-0 flex items-center justify-center font-bold ${
+                isListening
+                  ? "bg-red-500/20 border-red-500/50 text-red-400 animate-pulse"
+                  : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+              }`}
+              title={isListening ? "Stop Listening" : "Start Listening"}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
             <button 
               onClick={() => handleSendChat()}
               disabled={isPatientTyping || !inputMessage.trim()}
