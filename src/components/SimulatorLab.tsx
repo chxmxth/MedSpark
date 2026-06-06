@@ -104,6 +104,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
 
   // Voice state
   const [isListening, setIsListening] = useState(false);
+  const webSpeechRecognitionRef = useRef<any>(null);
 
   // Diagnostic states
   const [orderedDiagnostics, setOrderedDiagnostics] = useState<{ [key: string]: "pending" | "completed" }>({});
@@ -194,21 +195,70 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
         }
       });
     } catch (e) {
-      console.error(e);
-      alert("Speech recognition is not available or failed.");
-      setIsListening(false);
+      console.error("Capacitor Speech Recognition failed. Trying Web Speech API fallback...", e);
+
+      // Web Speech API fallback
+      const SpeechRecognitionFallback = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+      if (!SpeechRecognitionFallback) {
+        alert("Speech recognition is not available in this browser.");
+        setIsListening(false);
+        return;
+      }
+
+      try {
+        const recognition = new SpeechRecognitionFallback();
+        webSpeechRecognitionRef.current = recognition;
+
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          setInputMessage(transcript);
+          setIsListening(false);
+          handleSendChat(transcript);
+        };
+
+        recognition.onerror = (event: any) => {
+          console.error("Web Speech API error:", event.error);
+          setIsListening(false);
+        };
+
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+
+        setIsListening(true);
+        recognition.start();
+
+      } catch (fallbackError) {
+        console.error("Web Speech API fallback also failed:", fallbackError);
+        alert("Speech recognition is not available or failed.");
+        setIsListening(false);
+      }
     }
   };
 
   const stopListening = async () => {
     try {
       await SpeechRecognition.stop();
-      setIsListening(false);
       SpeechRecognition.removeAllListeners();
     } catch (e) {
-      console.error(e);
-      setIsListening(false);
+      console.error("Capacitor Speech Recognition stop failed:", e);
     }
+
+    try {
+      if (webSpeechRecognitionRef.current) {
+        webSpeechRecognitionRef.current.stop();
+        webSpeechRecognitionRef.current = null;
+      }
+    } catch (e) {
+      console.error("Web Speech API stop failed:", e);
+    }
+
+    setIsListening(false);
   };
 
   const toggleListening = () => {
