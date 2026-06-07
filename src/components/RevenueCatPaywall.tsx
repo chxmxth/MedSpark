@@ -99,11 +99,20 @@ export default function RevenueCatPaywall({
         const expectedId = selectedPlan === "Resident Pro" ? "medispark_pro_monthly" : "medispark_faculty_monthly";
         let packageToBuy;
 
+        const isMatch = (p: any) => {
+          const keyword = selectedPlan === "Resident Pro" ? "pro" : "faculty";
+          const idMatch = p.identifier === expectedId || p.identifier.toLowerCase().includes(keyword);
+          const productIdMatch = p.product?.identifier === expectedId || p.product?.identifier?.toLowerCase().includes(keyword);
+          const webIdMatch = p.rcBillingProduct?.identifier === expectedId || p.rcBillingProduct?.identifier?.toLowerCase().includes(keyword);
+
+          return idMatch || productIdMatch || webIdMatch;
+        };
+
         // 1. Try to find the exact offering by ID and use its matching package
         if (offerings.all && offerings.all[expectedId]) {
           const off = offerings.all[expectedId];
           if (off.availablePackages && off.availablePackages.length > 0) {
-             packageToBuy = off.availablePackages.find(p => p.identifier === expectedId || p.identifier.toLowerCase().includes(selectedPlan === "Resident Pro" ? "pro" : "faculty")) || off.availablePackages[0];
+             packageToBuy = off.availablePackages.find(isMatch) || off.availablePackages[0];
           }
         }
 
@@ -112,7 +121,7 @@ export default function RevenueCatPaywall({
           for (const key of Object.keys(offerings.all)) {
             const off = offerings.all[key];
             if (off && off.availablePackages) {
-              const found = off.availablePackages.find(p => p.identifier === expectedId || p.identifier.toLowerCase().includes(selectedPlan === "Resident Pro" ? "pro" : "faculty"));
+              const found = off.availablePackages.find(isMatch);
               if (found) {
                 packageToBuy = found;
                 break;
@@ -123,7 +132,18 @@ export default function RevenueCatPaywall({
 
         // 3. Fallback: Check offerings.current
         if (!packageToBuy && offerings.current && offerings.current.availablePackages) {
-          packageToBuy = offerings.current.availablePackages.find(p => p.identifier === expectedId || p.identifier.toLowerCase().includes(selectedPlan === "Resident Pro" ? "pro" : "faculty")) || offerings.current.availablePackages[0];
+          packageToBuy = offerings.current.availablePackages.find(isMatch) || offerings.current.availablePackages[0];
+        }
+
+        // 4. Ultimate Fallback: Select the very first package from ANY offering
+        if (!packageToBuy && offerings.all) {
+            for (const key of Object.keys(offerings.all)) {
+              const off = offerings.all[key];
+              if (off && off.availablePackages && off.availablePackages.length > 0) {
+                packageToBuy = off.availablePackages[0];
+                break;
+              }
+            }
         }
 
         if (!packageToBuy) {
@@ -135,7 +155,7 @@ export default function RevenueCatPaywall({
         if (isNativePlatform) {
           purchaseResult = await Purchases.purchasePackage({ aPackage: packageToBuy });
         } else {
-          purchaseResult = await PurchasesWeb.getSharedInstance().purchasePackage(packageToBuy);
+          purchaseResult = await PurchasesWeb.getSharedInstance().purchase({ rcPackage: packageToBuy });
         }
         const { customerInfo } = purchaseResult;
 
