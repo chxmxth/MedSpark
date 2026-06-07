@@ -314,6 +314,28 @@ app.post("/api/revenuecat/process", async (req, res) => {
       return res.status(402).json({ error: "Card declined. The secure gateway reported invalid simulation credentials." });
     }
 
+    // Expiry date validation
+    const expiry = billingDetails.expiry || "";
+    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
+      return res.status(400).json({ error: "Invalid expiry date format. Expected MM/YY." });
+    }
+
+    const [monthStr, yearStr] = expiry.split("/");
+    const expMonth = parseInt(monthStr, 10);
+    const expYear = parseInt(`20${yearStr}`, 10);
+
+    if (expMonth < 1 || expMonth > 12) {
+      return res.status(400).json({ error: "Invalid expiry month. Must be between 01 and 12." });
+    }
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+      return res.status(400).json({ error: "Card has expired." });
+    }
+
     // High fidelity receipt calculations
     const subtotal = planName === "Resident Pro" ? 9.99 : 29.99;
     const taxRate = 0.08; // 8% standard healthcare sales surcharge
