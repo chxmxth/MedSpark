@@ -1,17 +1,17 @@
 import React, { useState, FormEvent, useEffect } from "react";
 import { UserProfile } from "../types";
-import { 
-  auth, 
-  signInWithGoogle, 
-  logOutUser 
+import {
+  auth,
+  signInWithGoogle,
+  logOutUser
 } from "../lib/firebase";
 import RevenueCatPaywall from "./RevenueCatPaywall";
-import { 
-  User, 
-  ShieldCheck, 
-  ShieldAlert, 
-  BarChart, 
-  Settings2, 
+import {
+  User,
+  ShieldCheck,
+  ShieldAlert,
+  BarChart,
+  Settings2,
   CreditCard,
   Chrome,
   Facebook,
@@ -180,22 +180,22 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
   // Calculate quota remaining
   const caseLimit = profile.subscriptionPlan === "Free Tier" ? 3 : profile.subscriptionPlan === "Resident Pro" ? 200 : 500;
   const assistantLimit = profile.subscriptionPlan === "Free Tier" ? 10 : 1000;
-  
+
   const casePercentage = Math.min(((profile.casesCompleted / caseLimit) * 100), 100);
   const assistantPercentage = Math.min(((profile.assistantQueriesUsed / assistantLimit) * 100), 100);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-full">
-      
+
       {/* Column Left: Visual Bio Avatar Card  (Spans 4 cols) */}
       <div className="lg:col-span-4 flex flex-col gap-6">
-        
+
         {/* Bio */}
         <div className="bg-[#0A0C10] rounded-xl border border-slate-800/60 p-6 shadow-md flex flex-col items-center text-center">
           <div className="relative mb-4">
-            <img 
-              src={firebaseUser?.photoURL || "https://images.unsplash.com/photo-1594824813573-246434de83fb?w=150&auto=format&fit=crop&q=80"} 
-              alt={profile.firstName} 
+            <img
+              src={firebaseUser?.photoURL || "https://images.unsplash.com/photo-1594824813573-246434de83fb?w=150&auto=format&fit=crop&q=80"}
+              alt={profile.firstName}
               className="w-24 h-24 rounded-full object-cover border-4 border-slate-900 shadow-lg"
               referrerPolicy="no-referrer"
             />
@@ -293,10 +293,10 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
 
       {/* Column Right: Settings Details and Quotas (Spans 8 cols) */}
       <div className="lg:col-span-8 flex flex-col gap-6 font-sans">
-        
+
         {/* Limits & Quotas usage indicators */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          
+
           {/* OSCE Cases completed */}
           <div className="bg-[#0A0C10] border border-slate-800/65 rounded-xl p-5 shadow-md flex flex-col">
             <div className="flex justify-between items-center mb-3 text-slate-400">
@@ -311,7 +311,7 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
 
             {/* Quota bar */}
             <div className="w-full bg-[#050608] rounded-full h-2 mt-4 overflow-hidden border border-slate-900">
-              <div 
+              <div
                 className={`h-full rounded-full transition-all duration-300 ${
                   casePercentage > 90 ? 'bg-rose-500' : casePercentage > 70 ? 'bg-amber-500' : 'bg-[#10B981]'
                 }`}
@@ -341,7 +341,7 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
 
             {/* Quota bar */}
             <div className="w-full bg-[#050608] rounded-full h-2 mt-4 overflow-hidden border border-slate-900">
-              <div 
+              <div
                 className={`h-full rounded-full transition-all duration-300 ${
                   assistantPercentage > 90 ? 'bg-rose-500' : assistantPercentage > 70 ? 'bg-amber-500' : 'bg-[#10B981]'
                 }`}
@@ -363,9 +363,9 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
         <div className="bg-[#0A0C10] border border-slate-800/60 rounded-xl shadow-lg overflow-hidden">
           <div className="p-4 bg-slate-950/60 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h4 className="font-bold text-xs font-mono tracking-wider text-slate-400 uppercase">OSCE Portal Settings</h4>
-            
+
             {/* Reset button purely for testing */}
-            <button 
+            <button
               onClick={handleResetUsage}
               className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase font-mono font-bold bg-[#050608] border border-slate-800 hover:border-slate-750 text-slate-300 rounded-lg active:scale-95 transition-all w-auto cursor-pointer"
             >
@@ -374,7 +374,7 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
           </div>
 
           <div className="p-5 flex flex-col gap-4 text-xs font-semibold text-slate-300">
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="font-bold font-mono tracking-wide uppercase text-slate-500">First Name</label>
@@ -419,7 +419,6 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
           selectedPlan={pendingPlan}
           profile={profile}
           onChangeProfile={onChangeProfile}
-          userId={firebaseUser.uid}
         />
       )}
 
