@@ -1,3 +1,5 @@
+import { Capacitor } from "@capacitor/core";
+
 // Determine the API base URL.
 // When running in a native Android environment (Capacitor), relative URLs won't work out of the box because the app is hosted on capacitor://localhost or http://localhost.
 // So we provide a configurable base URL from localStorage, or fall back to the public production web URL, or use window.location.origin on web.
@@ -5,10 +7,10 @@ export function getApiUrl(path: string): string {
   // Safe check for path leading slash
   const formattedPath = path.startsWith("/") ? path : `/${path}`;
 
-  // Check if we are running under Capacitor
-  const isCapacitor = typeof window !== "undefined" && (window as any).Capacitor;
+  // Check if we are running natively under Capacitor
+  const isNative = Capacitor.isNativePlatform();
 
-  if (isCapacitor) {
+  if (isNative) {
     // Check if the user specified a custom host in settings, otherwise default to the shared web app production URL
     const customHost = localStorage.getItem("MEDISPARK_CUSTOM_API_HOST");
     if (customHost) {
