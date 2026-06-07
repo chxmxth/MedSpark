@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Purchases } from "@revenuecat/purchases-capacitor";
+import { Purchases as PurchasesWeb } from "@revenuecat/purchases-js";
 import { getApiUrl } from "./lib/api";
 
 export default function App() {
@@ -47,25 +48,25 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  // Initialize RevenueCat for native applications
+  // Initialize RevenueCat for native applications and web
   useEffect(() => {
     async function initRevenueCat() {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const res = await fetch(getApiUrl("/api/revenuecat/keys"));
-          if (res.ok) {
-            const keys = await res.json();
-            const platform = Capacitor.getPlatform();
+      try {
+        const res = await fetch(getApiUrl("/api/revenuecat/keys"));
+        if (res.ok) {
+          const keys = await res.json();
+          const platform = Capacitor.getPlatform();
 
-            if (platform === "ios" && keys.iosKey) {
-              await Purchases.configure({ apiKey: keys.iosKey });
-            } else if (platform === "android" && keys.androidKey) {
-              await Purchases.configure({ apiKey: keys.androidKey });
-            }
+          if (platform === "ios" && keys.iosKey) {
+            await Purchases.configure({ apiKey: keys.iosKey });
+          } else if (platform === "android" && keys.androidKey) {
+            await Purchases.configure({ apiKey: keys.androidKey });
+          } else if (platform === "web" && keys.webKey) {
+            PurchasesWeb.configure(keys.webKey);
           }
-        } catch (e) {
-          console.error("Failed to initialize RevenueCat keys from backend", e);
         }
+      } catch (e) {
+        console.error("Failed to initialize RevenueCat keys from backend", e);
       }
     }
 
