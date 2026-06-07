@@ -538,6 +538,12 @@ Output ONLY valid, parsed JSON. Do NOT wrap it in "json" code block quotes \`\`\
     res.status(500).json({ error: error.message || "Dynamic compilation failed." });
   }
 });
+app.get("/api/revenuecat/keys", (req, res) => {
+  res.json({
+    iosKey: process.env.REVENUECAT_IOS_API_KEY || "appl_GpqdAZqMJZjAYJraWWDFzTONegb",
+    androidKey: process.env.REVENUECAT_ANDROID_API_KEY || ""
+  });
+});
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({

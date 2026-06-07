@@ -23,6 +23,9 @@ import {
   ClipboardList,
   AlertTriangle
 } from "lucide-react";
+import { Capacitor } from "@capacitor/core";
+import { Purchases } from "@revenuecat/purchases-capacitor";
+import { getApiUrl } from "./lib/api";
 
 export default function App() {
   // Navigation tabs state
@@ -43,6 +46,31 @@ export default function App() {
   const [caseHistory, setCaseHistory] = useState<CaseEvaluation[]>(PRESEEDED_HISTORY);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+
+  // Initialize RevenueCat for native applications
+  useEffect(() => {
+    async function initRevenueCat() {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const res = await fetch(getApiUrl("/api/revenuecat/keys"));
+          if (res.ok) {
+            const keys = await res.json();
+            const platform = Capacitor.getPlatform();
+
+            if (platform === "ios" && keys.iosKey) {
+              await Purchases.configure({ apiKey: keys.iosKey });
+            } else if (platform === "android" && keys.androidKey) {
+              await Purchases.configure({ apiKey: keys.androidKey });
+            }
+          }
+        } catch (e) {
+          console.error("Failed to initialize RevenueCat keys from backend", e);
+        }
+      }
+    }
+
+    initRevenueCat();
+  }, []);
 
   // Monitor Authentication and Sync Real-Time Database Collections
   useEffect(() => {
