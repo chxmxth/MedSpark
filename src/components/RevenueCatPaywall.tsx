@@ -24,6 +24,7 @@ interface RevenueCatPaywallProps {
   selectedPlan: "Resident Pro" | "Faculty Advisor";
   profile: UserProfile;
   onChangeProfile: (updated: UserProfile) => void;
+  userId: string;
 }
 
 export default function RevenueCatPaywall({
@@ -31,7 +32,8 @@ export default function RevenueCatPaywall({
   onClose,
   selectedPlan: initialSelectedPlan,
   profile,
-  onChangeProfile
+  onChangeProfile,
+  userId
 }: RevenueCatPaywallProps) {
   const [selectedPlan, setSelectedPlan] = useState<"Resident Pro" | "Faculty Advisor">(initialSelectedPlan);
   
@@ -88,11 +90,45 @@ export default function RevenueCatPaywall({
     setLoadingStep(`Fetching packages for ${selectedPlan}...`);
 
     try {
+      if (isWebPlatform) {
+        const checkoutUrl = selectedPlan === "Resident Pro"
+          ? "https://pay.rev.cat/sofyxyoymbldogzr/"
+          : "https://pay.rev.cat/tpmzkdiajvpegiol/";
+
+        const finalUrl = `${checkoutUrl}?app_user_id=${userId}`;
+        window.open(finalUrl, "_blank");
+
+        setLoadingStep("Waiting for payment completion...");
+
+        const pollInterval = setInterval(async () => {
+          try {
+            if (PurchasesWeb.isConfigured()) {
+              const customerInfo = await PurchasesWeb.getSharedInstance().getCustomerInfo();
+              const entitlementKeys = Object.keys(customerInfo.entitlements.active);
+
+              if (entitlementKeys.length > 0) {
+                clearInterval(pollInterval);
+                handleSuccessfulPurchase({
+                  receiptId: "web_stripe_checkout",
+                  customerInfo
+                });
+              }
+            }
+          } catch (e) {
+            console.error("Polling error", e);
+          }
+        }, 3000);
+
+        setTimeout(() => {
+          clearInterval(pollInterval);
+          setStatus(prev => prev === "submitting" ? "idle" : prev);
+        }, 300000);
+
+        return;
+      }
       let offerings;
       if (isNativePlatform) {
         offerings = await Purchases.getOfferings();
-      } else if (isWebPlatform && PurchasesWeb.isConfigured()) {
-        offerings = await PurchasesWeb.getSharedInstance().getOfferings();
       } else {
         throw new Error("Purchasing is not configured properly on this platform.");
       }
@@ -154,38 +190,36 @@ export default function RevenueCatPaywall({
         let purchaseResult;
         if (isNativePlatform) {
           purchaseResult = await Purchases.purchasePackage({ aPackage: packageToBuy });
-        } else {
-          purchaseResult = await PurchasesWeb.getSharedInstance().purchase({ rcPackage: packageToBuy });
-        }
-        const { customerInfo } = purchaseResult;
+          const { customerInfo } = purchaseResult;
 
-        // Check entitlements
-        const entitlementKeys = Object.keys(customerInfo.entitlements.active);
-        if (entitlementKeys.length > 0) {
-           setReceipt({
-             receiptId: isNativePlatform ? "native_purchase" : "web_purchase",
-             planName: selectedPlan,
-             last4: "N/A",
-             payer: profile.firstName + " " + profile.lastName,
-             subtotal: parseFloat(currentPlan.price.replace("$", ""))
-           });
+          // Check entitlements
+          const entitlementKeys = Object.keys(customerInfo.entitlements.active);
+          if (entitlementKeys.length > 0) {
+             setReceipt({
+               receiptId: "native_purchase",
+               planName: selectedPlan,
+               last4: "N/A",
+               payer: profile.firstName + " " + profile.lastName,
+               subtotal: parseFloat(currentPlan.price.replace("$", ""))
+             });
 
-           let role: "student" | "pro" | "faculty" = "student";
-           if (selectedPlan === "Resident Pro") {
-             role = "pro";
-           } else if (selectedPlan === "Faculty Advisor") {
-             role = "faculty";
-           }
+             let role: "student" | "pro" | "faculty" = "student";
+             if (selectedPlan === "Resident Pro") {
+               role = "pro";
+             } else if (selectedPlan === "Faculty Advisor") {
+               role = "faculty";
+             }
 
-           setStatus("success");
-           onChangeProfile({
-             ...profile,
-             role,
-             subscriptionPlan: selectedPlan,
-             subscriptionActive: true
-           });
-        } else {
-           throw new Error("Purchase was successful but no active entitlements were found.");
+             setStatus("success");
+             onChangeProfile({
+               ...profile,
+               role,
+               subscriptionPlan: selectedPlan,
+               subscriptionActive: true
+             });
+          } else {
+             throw new Error("Purchase was successful but no active entitlements were found.");
+          }
         }
       } catch (err: any) {
         setStatus("error");
@@ -193,6 +227,33 @@ export default function RevenueCatPaywall({
           setErrorMessage(err.message || "Purchase failed.");
         }
       }
+  };
+
+  const handleSuccessfulPurchase = ({ receiptId, customerInfo }: any) => {
+    setReceipt({
+      receiptId,
+      planName: selectedPlan,
+      last4: "N/A",
+      payer: profile.firstName + " " + profile.lastName,
+      subtotal: parseFloat(currentPlan.price.replace("$", "")),
+      tax: 0,
+      total: parseFloat(currentPlan.price.replace("$", ""))
+    });
+
+    let role: "student" | "pro" | "faculty" = "student";
+    if (selectedPlan === "Resident Pro") {
+      role = "pro";
+    } else if (selectedPlan === "Faculty Advisor") {
+      role = "faculty";
+    }
+
+    setStatus("success");
+    onChangeProfile({
+      ...profile,
+      role,
+      subscriptionPlan: selectedPlan,
+      subscriptionActive: true
+    });
   };
 
   return (

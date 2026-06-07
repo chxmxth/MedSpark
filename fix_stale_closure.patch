@@ -1,0 +1,13 @@
+--- src/components/RevenueCatPaywall.tsx
++++ src/components/RevenueCatPaywall.tsx
+@@ -121,9 +121,7 @@
+
+         setTimeout(() => {
+           clearInterval(pollInterval);
+-          if (status === "submitting") {
+-            setStatus("idle");
+-          }
++          setStatus(prev => prev === "submitting" ? "idle" : prev);
+         }, 300000);
+
+         return;
