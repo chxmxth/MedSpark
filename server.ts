@@ -572,6 +572,14 @@ Output ONLY valid, parsed JSON. Do NOT wrap it in "json" code block quotes \`\`\
   }
 });
 
+// Endpoint to securely fetch public RevenueCat keys for the Capacitor native client
+app.get("/api/revenuecat/keys", (req, res) => {
+  res.json({
+    iosKey: process.env.REVENUECAT_IOS_API_KEY || "appl_GpqdAZqMJZjAYJraWWDFzTONegb",
+    androidKey: process.env.REVENUECAT_ANDROID_API_KEY || ""
+  });
+});
+
 // Setup development server fallback or static express serving
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

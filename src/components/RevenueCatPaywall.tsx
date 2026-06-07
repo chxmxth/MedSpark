@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { UserProfile } from "../types";
 import { getApiUrl } from "../lib/api";
+import { Capacitor } from "@capacitor/core";
+import { Purchases } from "@revenuecat/purchases-capacitor";
 
 interface RevenueCatPaywallProps {
   isOpen: boolean;
@@ -42,6 +44,8 @@ export default function RevenueCatPaywall({
   const [loadingStep, setLoadingStep] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [receipt, setReceipt] = useState<any | null>(null);
+
+  const isNativePlatform = Capacitor.isNativePlatform();
 
   if (!isOpen) return null;
 
@@ -109,6 +113,61 @@ export default function RevenueCatPaywall({
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isNativePlatform) {
+      setStatus("submitting");
+      setErrorMessage("");
+      setLoadingStep(`Fetching packages for ${selectedPlan}...`);
+
+      try {
+        const offerings = await Purchases.getOfferings();
+        if (!offerings.current || !offerings.current.availablePackages || offerings.current.availablePackages.length === 0) {
+          throw new Error("No purchase packages available at this time.");
+        }
+
+        // Find the right package based on selection (you might need to adjust mapping depending on how you configured RevenueCat entitlements/products)
+        // This is a naive match for the example:
+        const packageToBuy = offerings.current.availablePackages.find(p =>
+           (selectedPlan === "Resident Pro" && p.identifier.toLowerCase().includes("pro")) ||
+           (selectedPlan === "Faculty Advisor" && p.identifier.toLowerCase().includes("faculty"))
+        ) || offerings.current.availablePackages[0]; // fallback to first package
+
+        setLoadingStep(`Initiating native purchase...`);
+        const { customerInfo } = await Purchases.purchasePackage({ aPackage: packageToBuy });
+
+        // Check entitlements
+        const entitlementKeys = Object.keys(customerInfo.entitlements.active);
+        if (entitlementKeys.length > 0) {
+           setReceipt({
+             status: "active",
+             transactionId: "native_purchase",
+             revenueCatId: customerInfo.originalAppUserId
+           });
+
+           let role: "student" | "pro" | "faculty" = "student";
+           if (selectedPlan === "Resident Pro") {
+             role = "pro";
+           } else if (selectedPlan === "Faculty Advisor") {
+             role = "faculty";
+           }
+
+           setStatus("success");
+           onChangeProfile({
+             ...profile,
+             role,
+             subscriptionPlan: selectedPlan,
+             subscriptionActive: true
+           });
+        } else {
+           throw new Error("Purchase was successful but no active entitlements were found.");
+        }
+      } catch (err: any) {
+        setStatus("error");
+        setErrorMessage(err.message || "Native purchase failed.");
+      }
+      return;
+    }
+
     if (!cardNumber || !expiry || !cvc || !cardholderName || !zipCode) {
       setErrorMessage("Please complete all secure card details before authorizing.");
       setStatus("error");
@@ -333,109 +392,141 @@ export default function RevenueCatPaywall({
             {/* RIGHT COLUMN: Interactive Checkout inputs (Spans 7 cols) */}
             <div className="col-span-12 md:col-span-7 p-6 md:p-8 flex flex-col justify-between">
               <div>
-                <div className="border-b border-slate-900 pb-4 mb-6">
-                  <h4 className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Interactive Billing Credentials</h4>
-                  <p className="text-[11px] text-slate-400 mt-1 font-semibold leading-relaxed">
-                    Test using standard sandbox payment card numbers. To test declined cards, input <code className="bg-slate-900 px-1 py-0.5 rounded text-rose-400">4111 1111 1111 1111</code>.
-                  </p>
-                </div>
-
-                {errorMessage && (
-                  <div className="mb-5 flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-950 rounded-lg text-xs leading-normal text-rose-400 font-mono font-bold">
-                    <AlertTriangle className="w-4 h-4 shrink-0" />
-                    <span>{errorMessage}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitPayment} className="flex flex-col gap-4 font-sans text-xs">
-                  {/* Cardholder */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">Cardholder Name</label>
-                    <input
-                      required
-                      type="text"
-                      className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 px-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none"
-                      placeholder="Sarah Jenkins"
-                      value={cardholderName}
-                      onChange={(e) => setCardholderName(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Card number */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">Card Number</label>
-                    <div className="relative">
-                      <CreditCard className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        required
-                        type="text"
-                        maxLength={19}
-                        onChange={handleCardNumberChange}
-                        className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none font-mono"
-                        placeholder="4242 4242 4242 4242"
-                        value={cardNumber}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Expiry */}
-                    <div className="flex flex-col gap-1.5">
-                      <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">Expiry (MM/YY)</label>
-                      <input
-                        required
-                        type="text"
-                        maxLength={5}
-                        placeholder="12/28"
-                        onChange={handleExpiryChange}
-                        className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 px-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none font-mono"
-                        value={expiry}
-                      />
+                {isNativePlatform ? (
+                  <>
+                    <div className="border-b border-slate-900 pb-4 mb-6">
+                      <h4 className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Native App Purchase</h4>
+                      <p className="text-[11px] text-slate-400 mt-1 font-semibold leading-relaxed">
+                        Proceed securely using your native App Store or Google Play account.
+                      </p>
                     </div>
 
-                    {/* CVC */}
-                    <div className="flex flex-col gap-1.5">
-                      <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">CVC Code</label>
-                      <div className="relative">
-                        <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    {errorMessage && (
+                      <div className="mb-5 flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-950 rounded-lg text-xs leading-normal text-rose-400 font-mono font-bold">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>{errorMessage}</span>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleSubmitPayment} className="flex flex-col gap-4 font-sans text-xs mt-10">
+                      <button
+                        type="submit"
+                        className="w-full py-3.5 bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider rounded-lg active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        Purchase with {Capacitor.getPlatform() === 'ios' ? 'App Store' : 'Google Play'}
+                      </button>
+                      <p className="text-[10px] text-slate-500 font-semibold text-center mt-2 font-mono uppercase tracking-wide">
+                        Secure checkout. Cancel anytime.
+                      </p>
+                    </form>
+                  </>
+                ) : (
+                  <>
+                    <div className="border-b border-slate-900 pb-4 mb-6">
+                      <h4 className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Interactive Billing Credentials</h4>
+                      <p className="text-[11px] text-slate-400 mt-1 font-semibold leading-relaxed">
+                        Test using standard sandbox payment card numbers. To test declined cards, input <code className="bg-slate-900 px-1 py-0.5 rounded text-rose-400">4111 1111 1111 1111</code>.
+                      </p>
+                    </div>
+
+                    {errorMessage && (
+                      <div className="mb-5 flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-950 rounded-lg text-xs leading-normal text-rose-400 font-mono font-bold">
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
+                        <span>{errorMessage}</span>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleSubmitPayment} className="flex flex-col gap-4 font-sans text-xs">
+                      {/* Cardholder */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">Cardholder Name</label>
                         <input
                           required
                           type="text"
-                          maxLength={3}
-                          placeholder="123"
-                          className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none font-mono"
-                          value={cvc}
-                          onChange={(e) => setCvc(e.target.value.replace(/[^0-9]/g, ""))}
+                          className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 px-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none"
+                          placeholder="Sarah Jenkins"
+                          value={cardholderName}
+                          onChange={(e) => setCardholderName(e.target.value)}
                         />
                       </div>
-                    </div>
-                  </div>
 
-                  {/* ZIP code */}
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">Billing ZIP / Postal Code</label>
-                    <input
-                      required
-                      type="text"
-                      className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 px-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none font-mono"
-                      placeholder="90210"
-                      value={zipCode}
-                      onChange={(e) => setZipCode(e.target.value)}
-                    />
-                  </div>
+                      {/* Card number */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">Card Number</label>
+                        <div className="relative">
+                          <CreditCard className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            required
+                            type="text"
+                            maxLength={19}
+                            onChange={handleCardNumberChange}
+                            className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none font-mono"
+                            placeholder="4242 4242 4242 4242"
+                            value={cardNumber}
+                          />
+                        </div>
+                      </div>
 
-                  <div className="mt-4">
-                    <button
-                      type="submit"
-                      className="w-full py-3.5 bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider rounded-lg active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      Pay & Activate {selectedPlan} • {currentPlan.price}
-                    </button>
-                    <p className="text-[10px] text-slate-500 font-semibold text-center mt-2 font-mono uppercase tracking-wide">
-                      Instant upgrade sync. Secure checkout billing. Cancel anytime.
-                    </p>
-                  </div>
-                </form>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Expiry */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">Expiry (MM/YY)</label>
+                          <input
+                            required
+                            type="text"
+                            maxLength={5}
+                            placeholder="12/28"
+                            onChange={handleExpiryChange}
+                            className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 px-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none font-mono"
+                            value={expiry}
+                          />
+                        </div>
+
+                        {/* CVC */}
+                        <div className="flex flex-col gap-1.5">
+                          <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">CVC Code</label>
+                          <div className="relative">
+                            <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                            <input
+                              required
+                              type="text"
+                              maxLength={3}
+                              placeholder="123"
+                              className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 pl-10 pr-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none font-mono"
+                              value={cvc}
+                              onChange={(e) => setCvc(e.target.value.replace(/[^0-9]/g, ""))}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* ZIP code */}
+                      <div className="flex flex-col gap-1.5">
+                        <label className="font-bold text-slate-500 uppercase tracking-wide font-mono text-[10px]">Billing ZIP / Postal Code</label>
+                        <input
+                          required
+                          type="text"
+                          className="w-full bg-[#050608] border border-slate-800 rounded-lg py-2.5 px-3 font-semibold focus:bg-slate-950 focus:border-emerald-500/50 text-slate-100 outline-none font-mono"
+                          placeholder="90210"
+                          value={zipCode}
+                          onChange={(e) => setZipCode(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="mt-4">
+                        <button
+                          type="submit"
+                          className="w-full py-3.5 bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider rounded-lg active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          Pay & Activate {selectedPlan} • {currentPlan.price}
+                        </button>
+                        <p className="text-[10px] text-slate-500 font-semibold text-center mt-2 font-mono uppercase tracking-wide">
+                          Instant upgrade sync. Secure checkout billing. Cancel anytime.
+                        </p>
+                      </div>
+                    </form>
+                  </>
+                )}
               </div>
             </div>
           </>
