@@ -48,34 +48,29 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
-  // Initialize RevenueCat for native applications and web
+  // Monitor Authentication and Sync Real-Time Database Collections
   useEffect(() => {
-    async function initRevenueCat() {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      // Initialize RevenueCat for native applications and web with the correct User ID
       try {
         const res = await fetch(getApiUrl("/api/revenuecat/keys"));
         if (res.ok) {
           const keys = await res.json();
           const platform = Capacitor.getPlatform();
+          const appUserId = firebaseUser?.uid || "web_guest_user";
 
           if (platform === "ios" && keys.iosKey) {
-            await Purchases.configure({ apiKey: keys.iosKey });
+            await Purchases.configure({ apiKey: keys.iosKey, appUserID: appUserId });
           } else if (platform === "android" && keys.androidKey) {
-            await Purchases.configure({ apiKey: keys.androidKey });
+            await Purchases.configure({ apiKey: keys.androidKey, appUserID: appUserId });
           } else if (platform === "web" && keys.webKey) {
-            PurchasesWeb.configure(keys.webKey);
+            PurchasesWeb.configure(keys.webKey, appUserId);
           }
         }
       } catch (e) {
         console.error("Failed to initialize RevenueCat keys from backend", e);
       }
-    }
 
-    initRevenueCat();
-  }, []);
-
-  // Monitor Authentication and Sync Real-Time Database Collections
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       setCurrentUser(firebaseUser);
       setIsAuthLoading(false);
       
