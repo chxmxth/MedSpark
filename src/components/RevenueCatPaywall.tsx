@@ -96,16 +96,39 @@ export default function RevenueCatPaywall({
       } else {
         throw new Error("Purchasing is not configured properly on this platform.");
       }
-        if (!offerings.current || !offerings.current.availablePackages || offerings.current.availablePackages.length === 0) {
-          throw new Error("No purchase packages available at this time.");
+        const expectedId = selectedPlan === "Resident Pro" ? "medispark_pro_monthly" : "medispark_faculty_monthly";
+        let packageToBuy;
+
+        // 1. Try to find the exact offering by ID and use its matching package
+        if (offerings.all && offerings.all[expectedId]) {
+          const off = offerings.all[expectedId];
+          if (off.availablePackages && off.availablePackages.length > 0) {
+             packageToBuy = off.availablePackages.find(p => p.identifier === expectedId || p.identifier.toLowerCase().includes(selectedPlan === "Resident Pro" ? "pro" : "faculty")) || off.availablePackages[0];
+          }
         }
 
-        // Find the right package based on selection (you might need to adjust mapping depending on how you configured RevenueCat entitlements/products)
-        // This is a naive match for the example:
-        const packageToBuy = offerings.current.availablePackages.find(p =>
-           (selectedPlan === "Resident Pro" && p.identifier.toLowerCase().includes("pro")) ||
-           (selectedPlan === "Faculty Advisor" && p.identifier.toLowerCase().includes("faculty"))
-        ) || offerings.current.availablePackages[0]; // fallback to first package
+        // 2. Fallback: Search all offerings for a package identifier that matches
+        if (!packageToBuy && offerings.all) {
+          for (const key of Object.keys(offerings.all)) {
+            const off = offerings.all[key];
+            if (off && off.availablePackages) {
+              const found = off.availablePackages.find(p => p.identifier === expectedId || p.identifier.toLowerCase().includes(selectedPlan === "Resident Pro" ? "pro" : "faculty"));
+              if (found) {
+                packageToBuy = found;
+                break;
+              }
+            }
+          }
+        }
+
+        // 3. Fallback: Check offerings.current
+        if (!packageToBuy && offerings.current && offerings.current.availablePackages) {
+          packageToBuy = offerings.current.availablePackages.find(p => p.identifier === expectedId || p.identifier.toLowerCase().includes(selectedPlan === "Resident Pro" ? "pro" : "faculty")) || offerings.current.availablePackages[0];
+        }
+
+        if (!packageToBuy) {
+          throw new Error(`No purchase packages available at this time for ${selectedPlan}.`);
+        }
 
         setLoadingStep(`Initiating purchase...`);
         let purchaseResult;
