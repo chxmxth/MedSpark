@@ -91,11 +91,58 @@ export default function RevenueCatPaywall({
 
     try {
       if (isWebPlatform) {
-        const checkoutUrl = selectedPlan === "Resident Pro"
-          ? "https://pay.rev.cat/sofyxyoymbldogzr/"
-          : "https://pay.rev.cat/tpmzkdiajvpegiol/";
+        if (!PurchasesWeb.isConfigured()) {
+          throw new Error("Purchasing is not configured properly.");
+        }
+        const offerings = await PurchasesWeb.getSharedInstance().getOfferings();
+        const expectedId = selectedPlan === "Resident Pro" ? "medispark_pro_monthly" : "medispark_faculty_monthly";
+        let packageToBuy;
 
-        const finalUrl = `${checkoutUrl}?app_user_id=${userId}`;
+        const isMatch = (p: any) => {
+          const keyword = selectedPlan === "Resident Pro" ? "pro" : "faculty";
+          const idMatch = p.identifier === expectedId || p.identifier.toLowerCase().includes(keyword);
+          const productIdMatch = p.product?.identifier === expectedId || p.product?.identifier?.toLowerCase().includes(keyword);
+          const webIdMatch = p.rcBillingProduct?.identifier === expectedId || p.rcBillingProduct?.identifier?.toLowerCase().includes(keyword);
+
+          return idMatch || productIdMatch || webIdMatch;
+        };
+
+        if (offerings.all && offerings.all[expectedId]) {
+          const off = offerings.all[expectedId];
+          if (off.availablePackages && off.availablePackages.length > 0) {
+             packageToBuy = off.availablePackages.find(isMatch) || off.availablePackages[0];
+          }
+        }
+        if (!packageToBuy && offerings.all) {
+          for (const key of Object.keys(offerings.all)) {
+            const off = offerings.all[key];
+            if (off && off.availablePackages) {
+              const found = off.availablePackages.find(isMatch);
+              if (found) {
+                packageToBuy = found;
+                break;
+              }
+            }
+          }
+        }
+        if (!packageToBuy && offerings.current && offerings.current.availablePackages) {
+          packageToBuy = offerings.current.availablePackages.find(isMatch) || offerings.current.availablePackages[0];
+        }
+
+        if (!packageToBuy) {
+          throw new Error(`No purchase packages available at this time for ${selectedPlan}.`);
+        }
+
+        const checkoutUrl = packageToBuy.webCheckoutURL;
+        if (!checkoutUrl) {
+           throw new Error("No web checkout URL found for this package.");
+        }
+
+        // Web checkout URLs from RevenueCat might already have query parameters, so safely append
+        const finalUrl = checkoutUrl.includes('?')
+           ? `${checkoutUrl}&app_user_id=${userId}`
+           : `${checkoutUrl}?app_user_id=${userId}`;
+
         window.open(finalUrl, "_blank");
 
         setLoadingStep("Waiting for payment completion...");
