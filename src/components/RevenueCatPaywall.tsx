@@ -103,8 +103,10 @@ export default function RevenueCatPaywall({
           const idMatch = p.identifier === expectedId || p.identifier.toLowerCase().includes(keyword);
           const productIdMatch = p.product?.identifier === expectedId || p.product?.identifier?.toLowerCase().includes(keyword);
           const webIdMatch = p.rcBillingProduct?.identifier === expectedId || p.rcBillingProduct?.identifier?.toLowerCase().includes(keyword);
+          const platformProductIdMatch = p.platform_product_identifier === expectedId || p.platform_product_identifier?.toLowerCase().includes(keyword);
+          const platformProductCamelMatch = p.platformProductIdentifier === expectedId || p.platformProductIdentifier?.toLowerCase().includes(keyword);
 
-          return idMatch || productIdMatch || webIdMatch;
+          return idMatch || productIdMatch || webIdMatch || platformProductIdMatch || platformProductCamelMatch;
         };
 
         if (offerings.all && offerings.all[expectedId]) {
@@ -187,8 +189,10 @@ export default function RevenueCatPaywall({
           const idMatch = p.identifier === expectedId || p.identifier.toLowerCase().includes(keyword);
           const productIdMatch = p.product?.identifier === expectedId || p.product?.identifier?.toLowerCase().includes(keyword);
           const webIdMatch = p.rcBillingProduct?.identifier === expectedId || p.rcBillingProduct?.identifier?.toLowerCase().includes(keyword);
+          const platformProductIdMatch = p.platform_product_identifier === expectedId || p.platform_product_identifier?.toLowerCase().includes(keyword);
+          const platformProductCamelMatch = p.platformProductIdentifier === expectedId || p.platformProductIdentifier?.toLowerCase().includes(keyword);
 
-          return idMatch || productIdMatch || webIdMatch;
+          return idMatch || productIdMatch || webIdMatch || platformProductIdMatch || platformProductCamelMatch;
         };
 
         // 1. Try to find the exact offering by ID and use its matching package
