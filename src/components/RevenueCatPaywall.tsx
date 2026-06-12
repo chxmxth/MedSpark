@@ -100,7 +100,7 @@ export default function RevenueCatPaywall({
 
         const isMatch = (p: any) => {
           const keyword = selectedPlan === "Resident Pro" ? "pro" : "faculty";
-          const idMatch = p.identifier === expectedId || p.identifier.toLowerCase().includes(keyword);
+          const idMatch = p.identifier === expectedId || p.identifier.toLowerCase().includes(keyword) || p.identifier.toLowerCase().startsWith('$rc_');
           const productIdMatch = p.product?.identifier === expectedId || p.product?.identifier?.toLowerCase().includes(keyword);
           const webIdMatch = p.rcBillingProduct?.identifier === expectedId || p.rcBillingProduct?.identifier?.toLowerCase().includes(keyword);
           const platformProductIdMatch = p.platform_product_identifier === expectedId || p.platform_product_identifier?.toLowerCase().includes(keyword);
@@ -129,6 +129,16 @@ export default function RevenueCatPaywall({
         }
         if (!packageToBuy && offerings.current && offerings.current.availablePackages) {
           packageToBuy = offerings.current.availablePackages.find(isMatch) || offerings.current.availablePackages[0];
+        }
+
+        if (!packageToBuy && offerings.all) {
+          for (const key of Object.keys(offerings.all)) {
+            const off = offerings.all[key];
+            if (off && off.availablePackages && off.availablePackages.length > 0) {
+              packageToBuy = off.availablePackages[0];
+              break;
+            }
+          }
         }
 
         if (!packageToBuy) {
@@ -186,7 +196,7 @@ export default function RevenueCatPaywall({
 
         const isMatch = (p: any) => {
           const keyword = selectedPlan === "Resident Pro" ? "pro" : "faculty";
-          const idMatch = p.identifier === expectedId || p.identifier.toLowerCase().includes(keyword);
+          const idMatch = p.identifier === expectedId || p.identifier.toLowerCase().includes(keyword) || p.identifier.toLowerCase().startsWith('$rc_');
           const productIdMatch = p.product?.identifier === expectedId || p.product?.identifier?.toLowerCase().includes(keyword);
           const webIdMatch = p.rcBillingProduct?.identifier === expectedId || p.rcBillingProduct?.identifier?.toLowerCase().includes(keyword);
           const platformProductIdMatch = p.platform_product_identifier === expectedId || p.platform_product_identifier?.toLowerCase().includes(keyword);
