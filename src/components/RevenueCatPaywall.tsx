@@ -168,7 +168,7 @@ export default function RevenueCatPaywall({
               if (entitlementKeys.length > 0) {
                 clearInterval(pollInterval);
                 handleSuccessfulPurchase({
-                  receiptId: "web_stripe_checkout",
+                  receiptId: "web_paddle_checkout",
                   customerInfo
                 });
               }

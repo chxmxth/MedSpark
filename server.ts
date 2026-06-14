@@ -599,7 +599,7 @@ app.get("/api/revenuecat/keys", (req, res) => {
   res.json({
     iosKey: process.env.REVENUECAT_IOS_API_KEY || "appl_GpqdAZqMJZjAYJraWWDFzTONegb",
     androidKey: process.env.REVENUECAT_ANDROID_API_KEY || "",
-    webKey: process.env.REVENUECAT_WEB_API_KEY || "strp_dFpbDuGCYTTNQrNMoeFHKPKQnWl"
+    webKey: process.env.REVENUECAT_WEB_API_KEY || "pdl_BzwxWwjuNOXOUPJirUBJlVeuRNVy"
   });
 });
 
