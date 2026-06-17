@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { motion } from "motion/react";
 import { 
   CreditCard, 
@@ -42,6 +42,9 @@ export default function RevenueCatPaywall({
   const [loadingStep, setLoadingStep] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [receipt, setReceipt] = useState<any | null>(null);
+
+  // Reference for the in-app paywall container
+  const paywallContainerRef = useRef<HTMLDivElement>(null);
 
   const isNativePlatform = Capacitor.isNativePlatform();
   const isWebPlatform = Capacitor.getPlatform() === "web";
@@ -94,94 +97,29 @@ export default function RevenueCatPaywall({
         if (!PurchasesWeb.isConfigured()) {
           throw new Error("Purchasing is not configured properly.");
         }
-        const offerings = await PurchasesWeb.getSharedInstance().getOfferings();
-        const expectedId = selectedPlan === "Resident Pro" ? "medispark_pro_monthly" : "medispark_faculty_monthly";
-        let packageToBuy;
 
-        const isMatch = (p: any) => {
-          const keyword = selectedPlan === "Resident Pro" ? "pro" : "faculty";
-          const idMatch = p.identifier === expectedId || p.identifier.toLowerCase().includes(keyword) || p.identifier.toLowerCase().startsWith('$rc_');
-          const productIdMatch = p.product?.identifier === expectedId || p.product?.identifier?.toLowerCase().includes(keyword);
-          const webIdMatch = p.rcBillingProduct?.identifier === expectedId || p.rcBillingProduct?.identifier?.toLowerCase().includes(keyword);
-          const platformProductIdMatch = p.platform_product_identifier === expectedId || p.platform_product_identifier?.toLowerCase().includes(keyword);
-          const platformProductCamelMatch = p.platformProductIdentifier === expectedId || p.platformProductIdentifier?.toLowerCase().includes(keyword);
-
-          return idMatch || productIdMatch || webIdMatch || platformProductIdMatch || platformProductCamelMatch;
-        };
-
-        if (offerings.all && offerings.all[expectedId]) {
-          const off = offerings.all[expectedId];
-          if (off.availablePackages && off.availablePackages.length > 0) {
-             packageToBuy = off.availablePackages.find(isMatch) || off.availablePackages[0];
-          }
-        }
-        if (!packageToBuy && offerings.all) {
-          for (const key of Object.keys(offerings.all)) {
-            const off = offerings.all[key];
-            if (off && off.availablePackages) {
-              const found = off.availablePackages.find(isMatch);
-              if (found) {
-                packageToBuy = found;
-                break;
-              }
-            }
-          }
-        }
-        if (!packageToBuy && offerings.current && offerings.current.availablePackages) {
-          packageToBuy = offerings.current.availablePackages.find(isMatch) || offerings.current.availablePackages[0];
+        if (!paywallContainerRef.current) {
+          throw new Error("Paywall container is not ready.");
         }
 
-        if (!packageToBuy && offerings.all) {
-          for (const key of Object.keys(offerings.all)) {
-            const off = offerings.all[key];
-            if (off && off.availablePackages && off.availablePackages.length > 0) {
-              packageToBuy = off.availablePackages[0];
-              break;
-            }
-          }
+        setLoadingStep("Opening secure checkout...");
+
+        const purchaseResult = await PurchasesWeb.getSharedInstance().presentPaywall({
+          htmlTarget: paywallContainerRef.current
+        });
+
+        // The UI flow blocks here until the user completes the purchase or cancels it
+        const { customerInfo } = purchaseResult;
+        const entitlementKeys = Object.keys(customerInfo.entitlements.active);
+
+        if (entitlementKeys.length > 0) {
+          handleSuccessfulPurchase({
+            receiptId: "web_paddle_checkout",
+            customerInfo
+          });
+        } else {
+          setStatus("idle");
         }
-
-        if (!packageToBuy) {
-          throw new Error(`No purchase packages available at this time for ${selectedPlan}.`);
-        }
-
-        const checkoutUrl = packageToBuy.webCheckoutURL;
-        if (!checkoutUrl) {
-           throw new Error("No web checkout URL found for this package.");
-        }
-
-        // Web checkout URLs from RevenueCat might already have query parameters, so safely append
-        const finalUrl = checkoutUrl.includes('?')
-           ? `${checkoutUrl}&app_user_id=${userId}`
-           : `${checkoutUrl}?app_user_id=${userId}`;
-
-        window.open(finalUrl, "_blank");
-
-        setLoadingStep("Waiting for payment completion...");
-
-        const pollInterval = setInterval(async () => {
-          try {
-            if (PurchasesWeb.isConfigured()) {
-              const customerInfo = await PurchasesWeb.getSharedInstance().getCustomerInfo();
-              const entitlementKeys = Object.keys(customerInfo.entitlements.active);
-
-              if (entitlementKeys.length > 0) {
-                clearInterval(pollInterval);
-                handleSuccessfulPurchase({
-                  receiptId: "web_paddle_checkout",
-                  customerInfo
-                });
-              }
-            }
-          } catch (e) {
-            console.error("Polling error", e);
-          }
-        }, 3000);
-
-        setTimeout(() => {
-          clearInterval(pollInterval);
-          setStatus(prev => prev === "submitting" ? "idle" : prev);
-        }, 300000);
 
         return;
       }
@@ -500,33 +438,43 @@ export default function RevenueCatPaywall({
                     </form>
                   </>
                 ) : (
-                  <>
-                    <div className="border-b border-slate-900 pb-4 mb-6">
-                      <h4 className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Web App Purchase</h4>
-                      <p className="text-[11px] text-slate-400 mt-1 font-semibold leading-relaxed">
-                        Proceed securely using RevenueCat Web Checkout.
-                      </p>
+                  <div className="flex flex-col h-full">
+                    {/* The paywall container for RevenueCat Web SDK */}
+                    <div
+                      ref={paywallContainerRef}
+                      className="w-full min-h-[400px] flex-grow flex flex-col items-center justify-center relative"
+                    >
+                      {status !== "submitting" && (
+                        <>
+                          <div className="border-b border-slate-900 pb-4 mb-6 w-full text-center">
+                            <h4 className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Web App Purchase</h4>
+                            <p className="text-[11px] text-slate-400 mt-1 font-semibold leading-relaxed">
+                              Proceed securely using RevenueCat Web Checkout.
+                            </p>
+                          </div>
+
+                          {errorMessage && (
+                            <div className="mb-5 flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-950 rounded-lg text-xs leading-normal text-rose-400 font-mono font-bold w-full">
+                              <AlertTriangle className="w-4 h-4 shrink-0" />
+                              <span>{errorMessage}</span>
+                            </div>
+                          )}
+
+                          <form onSubmit={handleSubmitPayment} className="flex flex-col gap-4 font-sans text-xs mt-10 w-full">
+                            <button
+                              type="submit"
+                              className="w-full py-3.5 bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider rounded-lg active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              Purchase via Checkout
+                            </button>
+                            <p className="text-[10px] text-slate-500 font-semibold text-center mt-2 font-mono uppercase tracking-wide">
+                              Secure checkout. Cancel anytime.
+                            </p>
+                          </form>
+                        </>
+                      )}
                     </div>
-
-                    {errorMessage && (
-                      <div className="mb-5 flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-950 rounded-lg text-xs leading-normal text-rose-400 font-mono font-bold">
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
-                        <span>{errorMessage}</span>
-                      </div>
-                    )}
-
-                    <form onSubmit={handleSubmitPayment} className="flex flex-col gap-4 font-sans text-xs mt-10">
-                      <button
-                        type="submit"
-                        className="w-full py-3.5 bg-[#10B981] hover:bg-[#059669] text-slate-950 font-mono text-xs font-black uppercase tracking-wider rounded-lg active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        Purchase via Checkout
-                      </button>
-                      <p className="text-[10px] text-slate-500 font-semibold text-center mt-2 font-mono uppercase tracking-wide">
-                        Secure checkout. Cancel anytime.
-                      </p>
-                    </form>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
