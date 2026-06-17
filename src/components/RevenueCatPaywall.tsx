@@ -129,7 +129,7 @@ export default function RevenueCatPaywall({
       } else {
         throw new Error("Purchasing is not configured properly on this platform.");
       }
-        const expectedId = selectedPlan === "Resident Pro" ? "medispark_pro_monthly" : "medispark_faculty_monthly";
+        const expectedId = selectedPlan === "Resident Pro" ? "medixpark_pro_monthly" : "medixpark_faculty_monthly";
         let packageToBuy;
 
         const isMatch = (p: any) => {

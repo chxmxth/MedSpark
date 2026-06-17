@@ -12,14 +12,14 @@ export function getApiUrl(path: string): string {
 
   if (isNative) {
     // Check if the user specified a custom host in settings, otherwise default to the shared web app production URL
-    const customHost = localStorage.getItem("MEDISPARK_CUSTOM_API_HOST");
+    const customHost = localStorage.getItem("MEDIXPARK_CUSTOM_API_HOST");
     if (customHost) {
       const sanitizedHost = customHost.endsWith("/") ? customHost.slice(0, -1) : customHost;
       return `${sanitizedHost}${formattedPath}`;
     }
     // Default to our deployment URL so the Android/iOS apps work out-of-the-box with the live backend
     // Updated to the user's specific domain
-    const prodUrl = "https://medispark.com";
+    const prodUrl = "https://medixpark.com";
     return `${prodUrl}${formattedPath}`;
   }
 
