@@ -19,8 +19,12 @@ import {
   Lock,
   Zap,
   Power,
-  RotateCw
+  RotateCw,
+  FileText,
+  RefreshCcw
 } from "lucide-react";
+import PrivacyPolicyModal from "./PrivacyPolicyModal";
+import ReturnPolicyModal from "./ReturnPolicyModal";
 
 interface UserProfileProps {
   profile: UserProfile;
@@ -37,6 +41,9 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
   // Paywall states
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [pendingPlan, setPendingPlan] = useState<"Resident Pro" | "Faculty Advisor">("Resident Pro");
+
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isReturnOpen, setIsReturnOpen] = useState(false);
 
   // Monitor Auth changes to dynamically adjust UI layouts
   useEffect(() => {
@@ -184,6 +191,7 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
   const casePercentage = Math.min(((profile.casesCompleted / caseLimit) * 100), 100);
   const assistantPercentage = Math.min(((profile.assistantQueriesUsed / assistantLimit) * 100), 100);
 
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-full">
       
@@ -286,6 +294,38 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
               <span>Faculty Advisor (Limits: 500 OSCEs)</span>
               <span className="text-[9px] bg-emerald-500 px-1.5 rounded uppercase font-semibold text-slate-950 font-black">$29.99/mo</span>
             </button>
+          </div>
+        </div>
+
+        {/* Policies and Legal */}
+        <div className="bg-[#0A0C10] rounded-xl border border-slate-800/60 p-5 shadow-md relative overflow-hidden">
+          <h4 className="font-mono text-emerald-450 text-xs font-bold tracking-widest uppercase mb-3 flex items-center gap-1">
+            <FileText className="w-4 h-4" /> Legal & Policies
+          </h4>
+          <div className="flex flex-col gap-2 font-mono text-xs font-bold text-slate-400">
+            <button
+              onClick={() => setIsPrivacyOpen(true)}
+              className="flex items-center gap-2 p-2 hover:bg-slate-900 rounded-lg hover:text-slate-200 transition-colors cursor-pointer text-left w-full border border-transparent hover:border-slate-800"
+            >
+              <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-500/70" />
+              Privacy Policy
+            </button>
+            <button
+              onClick={() => setIsReturnOpen(true)}
+              className="flex items-center gap-2 p-2 hover:bg-slate-900 rounded-lg hover:text-slate-200 transition-colors cursor-pointer text-left w-full border border-transparent hover:border-slate-800"
+            >
+              <RefreshCcw className="w-4 h-4 shrink-0 text-emerald-500/70" />
+              Return Policy
+            </button>
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 p-2 hover:bg-slate-900 rounded-lg hover:text-slate-200 transition-colors cursor-pointer text-left w-full border border-transparent hover:border-slate-800"
+            >
+              <FileText className="w-4 h-4 shrink-0 text-emerald-500/70" />
+              Terms and Conditions
+            </a>
           </div>
         </div>
 
@@ -422,6 +462,9 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
           userId={firebaseUser.uid}
         />
       )}
+
+      <PrivacyPolicyModal isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
+      <ReturnPolicyModal isOpen={isReturnOpen} onClose={() => setIsReturnOpen(false)} />
 
     </div>
   );

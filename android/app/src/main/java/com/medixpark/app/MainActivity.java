@@ -1,4 +1,4 @@
-package com.medispark.app;
+package com.medixpark.app;
 
 import com.getcapacitor.BridgeActivity;
 

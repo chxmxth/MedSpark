@@ -32,7 +32,7 @@ platform :ios do
     match(
       type: "appstore",
       readonly: true,
-      app_identifier: "com.medispark.app",
+      app_identifier: "com.medixpark.app",
       git_url: ENV["MATCH_GIT_URL"]
     )
 
