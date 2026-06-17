@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">MediSpark</string>
-    <string name="title_activity_main">MediSpark</string>
-    <string name="package_name">com.medispark.app</string>
-    <string name="custom_url_scheme">com.medispark.app</string>
+    <string name="app_name">MediXpark</string>
+    <string name="title_activity_main">MediXpark</string>
+    <string name="package_name">com.medixpark.app</string>
+    <string name="custom_url_scheme">com.medixpark.app</string>
 </resources>

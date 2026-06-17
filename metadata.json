@@ -1,5 +1,5 @@
 {
-  "name": "MediSpark",
+  "name": "MediXpark",
   "description": "A high-fidelity simulator for medical OSCE exams featuring AI patient chat, real-time vitals monitors, diagnostic lab orders, and board evaluations.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

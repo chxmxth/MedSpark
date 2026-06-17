@@ -205,7 +205,7 @@ export default function App() {
       <header className="md:hidden fixed top-0 left-0 w-full bg-[#0A0C10] border-b border-slate-800/60 h-16 px-4 z-50 flex items-center justify-between text-white">
         <div className="flex items-center gap-2.5">
           <Stethoscope className="w-5 h-5 text-emerald-400" />
-          <h1 className="font-bold text-sm tracking-widest uppercase text-emerald-400">MediSpark</h1>
+          <h1 className="font-bold text-sm tracking-widest uppercase text-emerald-400">MediXpark</h1>
         </div>
       </header>
 
@@ -218,7 +218,7 @@ export default function App() {
             <Stethoscope className="w-6 h-6 animate-pulse" />
           </div>
           <div>
-            <h2 className="font-black text-white text-base leading-tight font-mono tracking-wide">MEDISPARK</h2>
+            <h2 className="font-black text-white text-base leading-tight font-mono tracking-wide">MEDIXPARK</h2>
             <span className="text-[10px] text-emerald-400 uppercase font-mono tracking-widest font-black block">AI OSCE Simulator</span>
           </div>
         </div>
