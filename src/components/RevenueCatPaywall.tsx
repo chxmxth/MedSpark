@@ -104,9 +104,23 @@ export default function RevenueCatPaywall({
 
         setLoadingStep("Opening secure checkout...");
 
-        const purchaseResult = await PurchasesWeb.getSharedInstance().presentPaywall({
+        const offerings = await PurchasesWeb.getSharedInstance().getOfferings();
+        const expectedId = selectedPlan === "Resident Pro" ? "medispark_pro_monthly" : "medispark_faculty_monthly";
+
+        let targetOffering = null;
+        if (offerings.all && offerings.all[expectedId]) {
+          targetOffering = offerings.all[expectedId];
+        }
+
+        const paywallConfig: any = {
           htmlTarget: paywallContainerRef.current
-        });
+        };
+
+        if (targetOffering) {
+          paywallConfig.offering = targetOffering;
+        }
+
+        const purchaseResult = await PurchasesWeb.getSharedInstance().presentPaywall(paywallConfig);
 
         // The UI flow blocks here until the user completes the purchase or cancels it
         const { customerInfo } = purchaseResult;
