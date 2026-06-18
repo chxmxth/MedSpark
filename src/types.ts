@@ -74,4 +74,5 @@ export interface UserProfile {
   assistantQueriesUsed: number;
   subscriptionActive: boolean;
   subscriptionPlan: "Free Tier" | "Resident Pro" | "Faculty Advisor";
+  topics?: string[];
 }
