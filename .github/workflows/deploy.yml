@@ -147,6 +147,4 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_B64: ${{ secrets.ASC_KEY_B64 }}
         run: |
-          echo "$ASC_KEY_B64" | base64 -d > fastlane/asc_key.p8
-          export ASC_KEY_FILEPATH="fastlane/asc_key.p8"
           fastlane ios appstore
