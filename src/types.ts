@@ -38,6 +38,9 @@ export interface PatientCase {
     finalDiagnosis: string;
     management: string[];
   };
+  opentargets_data?: Record<string, any>;
+  rxnav_data?: Record<string, any>;
+  umls_data?: Record<string, any>;
 }
 
 export interface CaseEvaluation {
@@ -75,4 +78,5 @@ export interface UserProfile {
   subscriptionActive: boolean;
   subscriptionPlan: "Free Tier" | "Resident Pro" | "Faculty Advisor";
   topics?: string[];
+  preferredQuestions?: string[];
 }
