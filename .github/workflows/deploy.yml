@@ -147,5 +147,4 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_B64: ${{ secrets.ASC_KEY_B64 }}
         run: |
-          ruby -e "require 'base64'; decoded = Base64.decode64(ENV['ASC_KEY_B64'].to_s.gsub(/\s+/, '')); body = decoded.gsub(/-----(BEGIN|END) PRIVATE KEY-----/, '').gsub(/\s+/, ''); puts \"-----BEGIN PRIVATE KEY-----\n#{body.scan(/.{1,64}/).join(%Q{\n})}\n-----END PRIVATE KEY-----\"" > fastlane/asc_key.p8
           fastlane ios appstore
