@@ -42,6 +42,26 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
   const [isGeneratingCase, setIsGeneratingCase] = useState(false);
   const [generationType, setGenerationType] = useState<"short" | "long" | null>(null);
 
+  // Source selection modal state
+  const [showSourceModal, setShowSourceModal] = useState(false);
+  const [pendingGenerationType, setPendingGenerationType] = useState<"short" | "long" | null>(null);
+  const [customTopicInput, setCustomTopicInput] = useState("");
+  const [showCustomInput, setShowCustomInput] = useState(false);
+
+
+  const handleOpenSourceModal = (type: "short" | "long") => {
+    const isFree = userProfile && userProfile.subscriptionPlan === "Free Tier";
+    if (type === "long" && isFree) {
+      alert("OSCE Long Cases are blocked entirely on the Free Tier! Please upgrade to Resident Pro or Faculty Advisor Plan in the Settings panel to simulate comprehensive Long Cases.");
+      onUpgrade();
+      return;
+    }
+    setPendingGenerationType(type);
+    setShowCustomInput(false);
+    setCustomTopicInput("");
+    setShowSourceModal(true);
+  };
+
   const handleGenerateTopicCase = async (type: "short" | "long", topic: string) => {
     if (isGeneratingCase) return;
 
@@ -552,76 +572,13 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
           </select>
 
 
-          {/* Custom Topic Case Generation */}
-          {(userProfile?.topics && userProfile.topics.length > 0) && (
-            <div className="flex flex-col gap-1.5 mt-1 pt-1 border-t border-slate-900/60">
-              <span className="text-[9px] font-bold text-slate-500 uppercase font-mono tracking-wider">Generate Custom Topic Case:</span>
-              <div className="grid grid-cols-1 gap-2 text-xs mb-2">
-                <select
-                  className="w-full bg-[#050608] border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 font-bold focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/50 focus:outline-none transition-all cursor-pointer"
-                  id="topic-selector"
-                >
-                  {userProfile.topics.map((topic, i) => (
-                    <option key={i} value={topic}>{topic}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <button
-                  disabled={isGeneratingCase}
-                  onClick={() => {
-                    const topic = (document.getElementById('topic-selector') as HTMLSelectElement).value;
-                    handleGenerateTopicCase("short", topic);
-                  }}
-                  className="py-2 px-3 border border-slate-800 bg-[#050608] hover:bg-slate-900 text-slate-300 font-mono font-bold uppercase text-[10px] tracking-wide rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer"
-                >
-                  {isGeneratingCase && generationType === "short" ? (
-                    <span className="w-2.5 h-2.5 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
-                  ) : (
-                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  )}
-                  Short Case
-                </button>
-
-                {userProfile && userProfile.subscriptionPlan === "Free Tier" ? (
-                  <button
-                    onClick={() => {
-                      const topic = (document.getElementById('topic-selector') as HTMLSelectElement).value;
-                      handleGenerateTopicCase("long", topic);
-                    }}
-                    className="py-2 px-3 border border-rose-950/45 bg-rose-950/15 hover:bg-rose-900/10 text-rose-350 font-mono font-bold uppercase text-[10px] tracking-wide rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <Lock className="w-3.5 h-3.5 text-rose-450 animate-pulse" />
-                    Long [Locked]
-                  </button>
-                ) : (
-                  <button
-                    disabled={isGeneratingCase}
-                    onClick={() => {
-                      const topic = (document.getElementById('topic-selector') as HTMLSelectElement).value;
-                      handleGenerateTopicCase("long", topic);
-                    }}
-                    className="py-2 px-3 border border-slate-800 bg-slate-950 hover:bg-slate-900 text-emerald-400 font-mono font-bold uppercase text-[10px] tracking-wide rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer hover:border-emerald-500/30"
-                  >
-                    {isGeneratingCase && generationType === "long" ? (
-                      <span className="w-2.5 h-2.5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></span>
-                    ) : (
-                      <Flame className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                    )}
-                    Long Case
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Random UMLS Case Generation Buttons */}
+          {/* Generate Case Buttons */}
           <div className="flex flex-col gap-1.5 mt-1 pt-1 border-t border-slate-900/60">
-            <span className="text-[9px] font-bold text-slate-500 uppercase font-mono tracking-wider">Generate Random UMLS Case:</span>
+            <span className="text-[9px] font-bold text-slate-500 uppercase font-mono tracking-wider">Generate Dynamic Case:</span>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <button
                 disabled={isGeneratingCase}
-                onClick={() => handleGenerateRandomCase("short")}
+                onClick={() => handleOpenSourceModal("short")}
                 className="py-2 px-3 border border-slate-800 bg-[#050608] hover:bg-slate-900 text-slate-300 font-mono font-bold uppercase text-[10px] tracking-wide rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer"
               >
                 {isGeneratingCase && generationType === "short" ? (
@@ -634,7 +591,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
 
               {userProfile && userProfile.subscriptionPlan === "Free Tier" ? (
                 <button
-                  onClick={() => handleGenerateRandomCase("long")}
+                  onClick={() => handleOpenSourceModal("long")}
                   className="py-2 px-3 border border-rose-950/45 bg-rose-950/15 hover:bg-rose-900/10 text-rose-350 font-mono font-bold uppercase text-[10px] tracking-wide rounded-lg transition-all active:scale-95 flex items-center justify-center gap-1 cursor-pointer"
                 >
                   <Lock className="w-3.5 h-3.5 text-rose-450 animate-pulse" />
@@ -643,7 +600,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
               ) : (
                 <button
                   disabled={isGeneratingCase}
-                  onClick={() => handleGenerateRandomCase("long")}
+                  onClick={() => handleOpenSourceModal("long")}
                   className="py-2 px-3 border border-slate-800 bg-slate-950 hover:bg-slate-900 text-emerald-400 font-mono font-bold uppercase text-[10px] tracking-wide rounded-lg transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer hover:border-emerald-500/30"
                 >
                   {isGeneratingCase && generationType === "long" ? (
@@ -1081,6 +1038,90 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
               >
                 Accept Grade & Exit
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Case Source Selection Modal */}
+      {showSourceModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0A0C10] rounded-2xl w-full max-w-sm border border-slate-800/80 shadow-2xl flex flex-col">
+            <div className="p-4 bg-slate-950/90 text-white border-b border-slate-800/80 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                <h3 className="font-bold text-sm font-mono uppercase tracking-wider">Select Case Source</h3>
+              </div>
+              <button
+                onClick={() => setShowSourceModal(false)}
+                className="text-slate-400 hover:text-white font-bold text-sm"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-5 flex flex-col gap-3">
+              {!showCustomInput ? (
+                <>
+                  <button
+                    onClick={() => {
+                      setShowSourceModal(false);
+                      if (pendingGenerationType) handleGenerateRandomCase(pendingGenerationType);
+                    }}
+                    className="w-full py-3 px-4 border border-slate-800 bg-[#050608] hover:bg-slate-900 text-slate-200 font-mono text-xs uppercase rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    Random Case from UMLS
+                  </button>
+
+                  {userProfile?.topics && userProfile.topics.length > 0 && (
+                    <button
+                      onClick={() => {
+                        setShowSourceModal(false);
+                        const randomTopic = userProfile.topics[Math.floor(Math.random() * userProfile.topics.length)];
+                        if (pendingGenerationType) handleGenerateTopicCase(pendingGenerationType, randomTopic);
+                      }}
+                      className="w-full py-3 px-4 border border-slate-800 bg-[#050608] hover:bg-slate-900 text-slate-200 font-mono text-xs uppercase rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      Random Case From My Topics
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setShowCustomInput(true)}
+                    className="w-full py-3 px-4 border border-slate-800 bg-[#050608] hover:bg-slate-900 text-slate-200 font-mono text-xs uppercase rounded-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    Enter Custom Case Name
+                  </button>
+                </>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <input
+                    type="text"
+                    placeholder="E.g., Mitral Valve Prolapse"
+                    value={customTopicInput}
+                    onChange={(e) => setCustomTopicInput(e.target.value)}
+                    className="w-full bg-[#050608] border border-slate-800 rounded-lg p-3 text-slate-100 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none placeholder:text-slate-600 text-sm font-semibold"
+                    autoFocus
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowCustomInput(false)}
+                      className="flex-1 py-2 px-3 border border-slate-800 text-slate-400 font-mono uppercase text-[10px] rounded-lg active:scale-95 transition-all text-center hover:bg-slate-900"
+                    >
+                      Back
+                    </button>
+                    <button
+                      disabled={!customTopicInput.trim()}
+                      onClick={() => {
+                        setShowSourceModal(false);
+                        if (pendingGenerationType) handleGenerateTopicCase(pendingGenerationType, customTopicInput.trim());
+                      }}
+                      className="flex-2 py-2 px-4 bg-emerald-500 hover:bg-emerald-450 disabled:bg-slate-900 disabled:border-slate-800/60 disabled:text-slate-600 font-mono text-[10px] font-black uppercase text-[#050608] tracking-wider rounded-lg transition-all shadow-[0_0_15px_rgba(16,185,129,0.15)] shrink-0 flex items-center justify-center"
+                    >
+                      Generate Case
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
