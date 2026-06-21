@@ -51,5 +51,14 @@
 	<string>We need access to your microphone so you can talk to the simulated patients.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>We need speech recognition to transcribe your voice when talking to simulated patients.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.340566358353-u98leqttodq73lmtmhetikjo8m08tvbt</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
