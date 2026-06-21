@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { UserProfile, CaseEvaluation } from "./types";
 import { PRESEEDED_HISTORY } from "./casesData";
 import SimulatorLab from "./components/SimulatorLab";
+import ParaClinicalLab from "./components/ParaClinicalLab";
 import ClinicalAssistant from "./components/ClinicalAssistant";
 import HistoryFeed from "./components/HistoryFeed";
 import UserProfileSettings from "./components/UserProfileSettings";
@@ -21,7 +22,9 @@ import {
   Sparkles,
   Search,
   ClipboardList,
-  AlertTriangle
+  AlertTriangle,
+  Dna,
+  ChevronRight
 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
 import { Purchases } from "@revenuecat/purchases-capacitor";
@@ -30,7 +33,7 @@ import { getApiUrl } from "./lib/api";
 
 export default function App() {
   // Navigation tabs state
-  const [activeTab, setActiveTab] = useState<"lab" | "assistant" | "history" | "profile">("lab");
+  const [activeTab, setActiveTab] = useState<"lab" | "paraclinical" | "assistant" | "history" | "profile">("lab");
 
   // Global synchronized state
   const [userProfile, setUserProfile] = useState<UserProfile>({
@@ -238,6 +241,19 @@ export default function App() {
           </button>
 
           <button
+            onClick={() => setActiveTab("paraclinical")}
+            className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-lg text-xs font-bold font-mono uppercase tracking-wide transition-all ${
+              activeTab === "paraclinical"
+                ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]"
+                : "text-slate-500 hover:text-slate-300 hover:bg-slate-900/45"
+            }`}
+          >
+            <Dna className="w-4 h-4 shrink-0" />
+            <span className="hidden md:block">Para-Clinical</span>
+            <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-0 md:group-hover:opacity-100 transition-opacity" />
+          </button>
+
+          <button
             onClick={() => setActiveTab("assistant")}
             className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-lg text-xs font-bold font-mono uppercase tracking-wide transition-all ${
               activeTab === "assistant"
@@ -285,10 +301,10 @@ export default function App() {
         <div className="hidden md:flex justify-between items-center bg-[#0A0C10] border-b border-slate-800/50 p-6 shadow-md shrink-0">
           <div>
             <h2 className="font-extrabold text-white text-lg leading-tight first-letter:uppercase">
-              {activeTab === "lab" ? "🩺 OSCE Clinical Simulation Lab" : activeTab === "assistant" ? "🧠 Decision Support Guidance" : activeTab === "history" ? "📂 Simulated Encounter Archive" : "⚙️ Clinical Settings & Credentials"}
+              {activeTab === "lab" ? "🩺 OSCE Clinical Simulation Lab" : activeTab === "paraclinical" ? "🧬 Para-Clinical Target Science" : activeTab === "assistant" ? "🧠 Decision Support Guidance" : activeTab === "history" ? "📂 Simulated Encounter Archive" : "⚙️ Clinical Settings & Credentials"}
             </h2>
             <p className="text-xs text-slate-400 font-semibold mt-1">
-              {activeTab === "lab" ? "High-fidelity clinical exam training powered by active AI orchestration." : activeTab === "assistant" ? "Evidence-based guidelines, medication references and differential diagnostic checklists." : activeTab === "history" ? "Review structured board examiner comments, clinical feedback and scoring catalogs." : "Verify credentials usage boundaries, limits and active plans."}
+              {activeTab === "lab" ? "High-fidelity clinical exam training powered by active AI orchestration." : activeTab === "paraclinical" ? "Deep foundational science integration matching case paradigms." : activeTab === "assistant" ? "Evidence-based guidelines, medication references and differential diagnostic checklists." : activeTab === "history" ? "Review structured board examiner comments, clinical feedback and scoring catalogs." : "Verify credentials usage boundaries, limits and active plans."}
             </p>
           </div>
 
@@ -312,6 +328,15 @@ export default function App() {
         <div className="flex-grow p-4 md:p-8 max-w-7xl w-full mx-auto">
           <div className={activeTab === "lab" ? "block" : "hidden"}>
             <SimulatorLab 
+              onEvaluationCompleted={handleCompleteCase}
+              userProfile={userProfile}
+              decreaseAvailableCases={decreaseAvailableCases}
+              onUpgrade={() => setActiveTab("profile")}
+            />
+          </div>
+
+          <div className={activeTab === "paraclinical" ? "block" : "hidden"}>
+            <ParaClinicalLab
               onEvaluationCompleted={handleCompleteCase}
               userProfile={userProfile}
               decreaseAvailableCases={decreaseAvailableCases}
@@ -354,6 +379,16 @@ export default function App() {
         >
           <Stethoscope className="w-4 h-4 mb-0.5 shrink-0" />
           <span>Lab</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("paraclinical")}
+          className={`flex flex-col items-center justify-center p-2.5 rounded-lg text-[10px] font-bold ${
+            activeTab === "paraclinical" ? "text-indigo-400 bg-indigo-500/5 font-extrabold" : "text-slate-500"
+          }`}
+        >
+          <Dna className="w-4 h-4 mb-0.5 shrink-0" />
+          <span>Science</span>
         </button>
 
         <button

@@ -64,6 +64,13 @@ export interface CaseEvaluation {
     strengths: string[];
     weaknesses: string[];
   };
+  paraClinicalSubmission?: Array<{ question: string; answer: string; }>;
+  paraClinicalFeedback?: {
+    overallFeedback: string;
+    rating: number; // out of 5
+    strengths: string[];
+    weaknesses: string[];
+  };
   score: number; // 0 to 100
   createdAt: string;
 }
