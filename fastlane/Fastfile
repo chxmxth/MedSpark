@@ -20,6 +20,8 @@ end
 platform :ios do
   desc "Build and submit iOS app to Apple App Store"
   lane :appstore do
+    setup_ci
+
     # Setup App Store Connect API Key for authentication
     app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
