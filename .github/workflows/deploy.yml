@@ -57,7 +57,7 @@ jobs:
 
       - name: Map Custom Domain
         run: |
-          gcloud beta run domain-mappings create --service medispark-api --domain medispark.com --region asia-southeast1 || true
+          gcloud beta run domain-mappings create --service medispark-api --domain medixpark.com --region asia-southeast1 || true
 
   build-and-deploy-android:
     runs-on: ubuntu-latest
