@@ -39,6 +39,10 @@ platform :ios do
       git_url: ENV["MATCH_GIT_URL"]
     )
 
+    increment_build_number(
+      build_number: ENV["GITHUB_RUN_NUMBER"]
+    )
+
     update_code_signing_settings(
       use_automatic_signing: false,
       path: "ios/App/App.xcodeproj",
