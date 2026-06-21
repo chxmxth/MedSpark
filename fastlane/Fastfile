@@ -37,6 +37,16 @@ platform :ios do
       git_url: ENV["MATCH_GIT_URL"]
     )
 
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "ios/App/App.xcodeproj",
+      team_id: "JFVKWF4NC6",
+      bundle_identifier: "com.medspark.app",
+      profile_name: "match AppStore com.medspark.app",
+      targets: ["App"],
+      code_sign_identity: "Apple Distribution"
+    )
+
     build_app(
       scheme: "App",
       project: "ios/App/App.xcodeproj",
