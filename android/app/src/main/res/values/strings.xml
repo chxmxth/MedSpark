@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">MediXpark</string>
     <string name="title_activity_main">MediXpark</string>
-    <string name="package_name">com.medixpark.app</string>
-    <string name="custom_url_scheme">com.medixpark.app</string>
+    <string name="package_name">com.medspark.app</string>
+    <string name="custom_url_scheme">com.medspark.app</string>
 </resources>

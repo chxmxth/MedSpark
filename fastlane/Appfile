@@ -1,8 +1,8 @@
-app_identifier("com.medixpark.app") # The bundle identifier of your app
+app_identifier("com.medspark.app") # The bundle identifier of your app
 apple_id("apple_dev@medixpark.com") # Your Apple Developer ID
 # itc_team_id("XXXXXXXXXX") # App Store Connect Team ID
 # team_id("XXXXXXXXXX") # Developer Portal Team ID
 
 # Android setup
 json_key_file("./fastlane/play_store_key.json") # Path to the Play Store service account key
-package_name("com.medixpark.app")
+package_name("com.medspark.app")

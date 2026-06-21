@@ -32,8 +32,8 @@ platform :ios do
     # Download signing certificates
     match(
       type: "appstore",
-      readonly: true,
-      app_identifier: "com.medixpark.app",
+      readonly: false,
+      skip_confirmation: true,
       git_url: ENV["MATCH_GIT_URL"]
     )
 
