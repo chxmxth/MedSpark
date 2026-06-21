@@ -343,23 +343,26 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
 
               <div className="flex gap-2">
                 <input
-                  disabled={!isEditing}
                   placeholder="e.g. Cardiology, Acute Stroke"
                   className="flex-grow p-2.5 bg-[#050608] border border-slate-800/80 rounded-lg disabled:opacity-60 focus:bg-[#050608] focus:border-emerald-500/50 outline-none font-bold text-slate-100 placeholder:text-slate-700"
                   value={newTopic}
                   onChange={(e) => setNewTopic(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && newTopic.trim() && isEditing) {
+                    if (e.key === 'Enter' && newTopic.trim()) {
                       e.preventDefault();
-                      setTopics([...topics, newTopic.trim()]);
+                      const updatedTopics = [...topics, newTopic.trim()];
+                      setTopics(updatedTopics);
+                      onChangeProfile({ ...profile, topics: updatedTopics });
                       setNewTopic("");
                     }
                   }}
                 />
                 <button
-                  disabled={!isEditing || !newTopic.trim()}
+                  disabled={!newTopic.trim()}
                   onClick={() => {
-                    setTopics([...topics, newTopic.trim()]);
+                    const updatedTopics = [...topics, newTopic.trim()];
+                    setTopics(updatedTopics);
+                    onChangeProfile({ ...profile, topics: updatedTopics });
                     setNewTopic("");
                   }}
                   className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold font-mono uppercase text-[10px] rounded-lg disabled:opacity-50 hover:bg-emerald-500/20 transition-colors"
@@ -373,14 +376,16 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
                   {topics.map((t, idx) => (
                     <span key={idx} className="bg-slate-900 border border-slate-700/50 text-slate-300 px-2 py-1 rounded-md text-[11px] font-bold flex items-center gap-1.5">
                       {t}
-                      {isEditing && (
-                        <button
-                          onClick={() => setTopics(topics.filter((_, i) => i !== idx))}
-                          className="text-rose-500/70 hover:text-rose-400 focus:outline-none"
-                        >
-                          &times;
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          const updatedTopics = topics.filter((_, i) => i !== idx);
+                          setTopics(updatedTopics);
+                          onChangeProfile({ ...profile, topics: updatedTopics });
+                        }}
+                        className="text-rose-500/70 hover:text-rose-400 focus:outline-none"
+                      >
+                        &times;
+                      </button>
                     </span>
                   ))}
                 </div>
