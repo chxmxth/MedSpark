@@ -22,9 +22,8 @@ service cloud.firestore {
 
     // User Profile Validation Helper
     function isValidUserProfile(data) {
-      return data.keys().hasAll(['email', 'firstName', 'lastName', 'role', 'casesCompleted', 'assistantQueriesUsed', 'subscriptionActive', 'subscriptionPlan'])
-          && data.keys().size() == 8
-          && data.email is string && data.email.size() <= 200
+      let hasRequired = data.keys().hasAll(['email', 'firstName', 'lastName', 'role', 'casesCompleted', 'assistantQueriesUsed', 'subscriptionActive', 'subscriptionPlan']);
+      let validTypes = data.email is string && data.email.size() <= 200
           && data.firstName is string && data.firstName.size() <= 100
           && data.lastName is string && data.lastName.size() <= 100
           && data.role is string && (data.role == "student" || data.role == "pro" || data.role == "faculty")
@@ -32,6 +31,14 @@ service cloud.firestore {
           && data.assistantQueriesUsed is int
           && data.subscriptionActive is bool
           && data.subscriptionPlan is string && (data.subscriptionPlan == "Free Tier" || data.subscriptionPlan == "Resident Pro" || data.subscriptionPlan == "Faculty Advisor");
+
+      let validTopics = !data.keys().hasAny(['topics']) || data.topics is list;
+      let validPreferredQuestions = !data.keys().hasAny(['preferredQuestions']) || data.preferredQuestions is list;
+
+      let allowedKeys = ['email', 'firstName', 'lastName', 'role', 'casesCompleted', 'assistantQueriesUsed', 'subscriptionActive', 'subscriptionPlan', 'topics', 'preferredQuestions'];
+      let hasOnlyAllowedKeys = data.keys().hasOnly(allowedKeys);
+
+      return hasRequired && validTypes && validTopics && validPreferredQuestions && hasOnlyAllowedKeys;
     }
 
     // Case Evaluation Validation Helper
