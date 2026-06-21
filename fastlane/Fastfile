@@ -41,7 +41,9 @@ platform :ios do
       scheme: "App",
       project: "ios/App/App.xcodeproj",
       export_method: "app-store",
-      clean: true
+      clean: true,
+      xcargs: "DEVELOPMENT_TEAM=JFVKWF4NC6",
+      export_team_id: "JFVKWF4NC6"
     )
 
     upload_to_app_store(
