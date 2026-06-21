@@ -1,6 +1,8 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithCredential, signOut, User as FirebaseUser } from 'firebase/auth';
 import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
@@ -59,16 +61,30 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 // Google Authentication
 export async function signInWithGoogle() {
   try {
-    const response = await signInWithPopup(auth, googleProvider);
-    return response.user;
+    if (Capacitor.isNativePlatform()) {
+      const result = await FirebaseAuthentication.signInWithGoogle();
+      const idToken = result.credential?.idToken;
+      if (!idToken) {
+        throw new Error("No ID token returned from native Google sign-in.");
+      }
+      const credential = GoogleAuthProvider.credential(idToken);
+      const userCredential = await signInWithCredential(auth, credential);
+      return userCredential.user;
+    } else {
+      const response = await signInWithPopup(auth, googleProvider);
+      return response.user;
+    }
   } catch (error) {
-    console.error("Popup Authentication failed: ", error);
+    console.error("Authentication failed: ", error);
     throw error;
   }
 }
 
 export async function logOutUser() {
   try {
+    if (Capacitor.isNativePlatform()) {
+      await FirebaseAuthentication.signOut();
+    }
     await signOut(auth);
   } catch (error) {
     console.error("Sign out transaction failed: ", error);
