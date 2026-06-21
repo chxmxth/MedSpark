@@ -24,8 +24,7 @@ platform :ios do
     app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
       issuer_id: ENV["ASC_ISSUER_ID"],
-      key_content: ENV["ASC_KEY_B64"],
-      is_key_content_base64: true,
+      key_filepath: "asc_key.p8",
       in_house: false
     )
 
