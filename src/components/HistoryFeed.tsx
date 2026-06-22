@@ -366,6 +366,22 @@ export default function HistoryFeed({ evaluations, userProfile, onUpgrade }: His
                 </div>
                 <div className="divide-y divide-slate-800/80 bg-[#050608]/80 text-slate-300 leading-relaxed">
                   
+                  {selectedEval.paraClinicalSubmission && selectedEval.paraClinicalSubmission.length > 0 && (
+                    <div className="p-3.5 bg-indigo-950/20 border-b border-indigo-500/20">
+                      <span className="font-bold uppercase tracking-wider text-[10px] text-indigo-400 block mb-3 font-mono flex items-center gap-2">
+                        <Target className="w-3 h-3" /> Para-Clinical Documentation
+                      </span>
+                      <div className="flex flex-col gap-4">
+                        {selectedEval.paraClinicalSubmission.map((sub: any, idx: number) => (
+                          <div key={idx} className="bg-[#050608] border border-slate-800 p-3 rounded">
+                            <p className="text-[10px] text-indigo-300 font-mono font-bold mb-1">Q{idx + 1}: {sub.question}</p>
+                            <p className="text-sm text-slate-300 whitespace-pre-wrap">{sub.answer}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="p-3.5">
                     <span className="font-bold uppercase tracking-wider text-[10px] text-slate-500 block mb-1 font-mono">1. History taking Findings</span>
                     <p className="text-slate-300 leading-medium font-semibold">{selectedEval.studentSubmission.historyFindings}</p>
