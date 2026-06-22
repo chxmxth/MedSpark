@@ -1,0 +1,17 @@
+[
+  {
+    "disease": "Heart Failure",
+    "efoId": "EFO_0003144",
+    "drugName": "furosemide"
+  },
+  {
+    "disease": "Pulmonary Embolism",
+    "efoId": "EFO_0007106",
+    "drugName": "enoxaparin"
+  },
+  {
+    "disease": "Myocardial Infarction",
+    "efoId": "EFO_0000612",
+    "drugName": "aspirin"
+  }
+]
