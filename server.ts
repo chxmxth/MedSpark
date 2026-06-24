@@ -377,6 +377,121 @@ app.get("/api/config/status", (req, res) => {
 });
 
 // A robust dictionary of clinical symptoms and diagnostic targets to search UTS database or fall back to
+
+async function fetchOpenTargets(diseaseName: string) {
+  try {
+    const searchUrl = "https://api.platform.opentargets.org/api/v4/graphql";
+    const searchQuery = `
+      query search($queryString: String!) {
+        search(queryString: $queryString, entityNames: ["disease"], page: {index: 0, size: 1}) {
+          hits {
+            id
+            name
+          }
+        }
+      }
+    `;
+    const searchRes = await fetch(searchUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: searchQuery, variables: { queryString: diseaseName } })
+    });
+    if (!searchRes.ok) return null;
+    const searchData: any = await searchRes.json();
+    const efoId = searchData?.data?.search?.hits?.[0]?.id;
+    if (!efoId) return null;
+
+    const query = `
+      query disease($efoId: String!) {
+        disease(efoId: $efoId) {
+          id
+          name
+          description
+          associatedTargets(page: {index: 0, size: 10}) {
+            count
+            rows {
+              target {
+                id
+                approvedSymbol
+                approvedName
+              }
+              score
+            }
+          }
+        }
+      }
+    `;
+    const res = await fetch(searchUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables: { efoId } })
+    });
+    if (!res.ok) return null;
+    const data: any = await res.json();
+    return data.data;
+  } catch (error) {
+    console.error(`Error fetching OpenTargets for ${diseaseName}:`, error);
+    return null;
+  }
+}
+
+async function fetchRxNav(drugName: string) {
+  try {
+    const searchUrl = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(drugName)}`;
+    const searchRes = await fetch(searchUrl);
+    if (!searchRes.ok) return null;
+    const searchData: any = await searchRes.json();
+
+    let rxcui = null;
+    if (searchData.drugGroup && searchData.drugGroup.conceptGroup) {
+      for (const group of searchData.drugGroup.conceptGroup) {
+        if (group.conceptProperties && group.conceptProperties.length > 0) {
+          rxcui = group.conceptProperties[0].rxcui;
+          break;
+        }
+      }
+    }
+
+    if (!rxcui) {
+      return { searchData, classes: null };
+    }
+
+    const classUrl = `https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=${rxcui}`;
+    const classRes = await fetch(classUrl);
+    const classData = classRes.ok ? await classRes.json() : null;
+
+    return { searchData, classData, rxcui };
+  } catch (error) {
+    console.error(`Error fetching RxNav for ${drugName}:`, error);
+    return null;
+  }
+}
+
+async function fetchUMLS(diseaseName: string, apiKey: string) {
+  if (!apiKey) return null;
+  try {
+    const searchUrl = `https://uts-ws.nlm.nih.gov/rest/search/current?string=${encodeURIComponent(diseaseName)}&apiKey=${apiKey}`;
+    const searchRes = await fetch(searchUrl);
+    if (!searchRes.ok) return null;
+    const searchData: any = await searchRes.json();
+
+    if (searchData.result && searchData.result.results && searchData.result.results.length > 0) {
+      const firstResult = searchData.result.results[0];
+      const cui = firstResult.ui;
+
+      const detailUrl = `https://uts-ws.nlm.nih.gov/rest/content/current/CUI/${cui}?apiKey=${apiKey}`;
+      const detailRes = await fetch(detailUrl);
+      const detailData: any = detailRes.ok ? await detailRes.json() : null;
+
+      return { search: firstResult, details: detailData?.result };
+    }
+    return searchData;
+  } catch (error) {
+    console.error(`Error fetching UMLS for ${diseaseName}:`, error);
+    return null;
+  }
+}
+
 const clinicalSearchTerms = [
   "acute appendicitis", "bacterial meningitis", "diabetic ketoacidosis", "severe asthma attack",
   "acute cholecystitis", "acute pancreatitis", "pulmonary embolism", "renal colic",
@@ -409,7 +524,7 @@ app.post("/api/cases/generate-random", async (req, res) => {
     let umlsCui = "C0000000"; // default fallback ID
 
     // We fetch live concepts from NLM's UTS REST Search system using the user's umls apiKey
-    const umlsApiKey = process.env.UMLS_API_KEY || "cfdb995a-0b8e-446c-82da-3851fb209c42";
+    const umlsApiKey = process.env.UMLS_API_KEY as string;
     try {
       const umlsUrl = `https://uts-ws.nlm.nih.gov/rest/search/current?apiKey=${umlsApiKey}&string=${encodeURIComponent(chosenTerm)}`;
       const umlsResponse = await fetch(umlsUrl);
@@ -493,7 +608,9 @@ Your output must be a single JSON object conforming exactly to this TypeScript i
       "stepwise therapy guideline 3",
       "stepwise therapy guideline 4",
       "stepwise therapy guideline 5"
-    ]
+    ],
+    "primaryDisease": "the core disease name matching the concept",
+    "primaryDrug": "the primary pharmacological drug name used in management"
   }
 }
 
@@ -577,7 +694,24 @@ Output ONLY valid, parsed JSON. Do NOT wrap it in "json" code block quotes \`\`\
 
     try {
       const parsedCase = JSON.parse(cleanJson);
-      // Ensure key identifiers are locked in
+
+      const randomPrimaryDisease = parsedCase.correctAnswers?.primaryDisease || parsedCase.correctAnswers?.finalDiagnosis || umlsTerm || "Heart Failure";
+      const randomPrimaryDrug = parsedCase.correctAnswers?.primaryDrug || "aspirin";
+
+      try {
+        const [opentargetsData, rxnavData, umlsData] = await Promise.all([
+          fetchOpenTargets(randomPrimaryDisease),
+          fetchRxNav(randomPrimaryDrug),
+          fetchUMLS(randomPrimaryDisease, umlsApiKey)
+        ]);
+
+        parsedCase.opentargets_data = opentargetsData;
+        parsedCase.rxnav_data = rxnavData;
+        parsedCase.umls_data = umlsData;
+      } catch (apiErr) {
+        console.error("Error fetching para-clinical data:", apiErr);
+      }
+// Ensure key identifiers are locked in
       parsedCase.id = generatedId;
       if (!parsedCase.name) parsedCase.name = "Simulated Patient";
       if (!parsedCase.vitals) parsedCase.vitals = { heartRate: 75, bloodPressure: "120/80", oxygenSat: 98, respRate: 16 };
@@ -723,7 +857,25 @@ Output ONLY valid, parsed JSON.`;
 
     try {
       const parsedCase = JSON.parse(cleanJson);
-      // Ensure key identifiers are locked in
+
+      const topicUmlsApiKey = process.env.UMLS_API_KEY as string;
+      const topicPrimaryDisease = parsedCase.correctAnswers?.primaryDisease || parsedCase.correctAnswers?.finalDiagnosis || topic || "Heart Failure";
+      const topicPrimaryDrug = parsedCase.correctAnswers?.primaryDrug || "aspirin";
+
+      try {
+        const [opentargetsData, rxnavData, umlsData] = await Promise.all([
+          fetchOpenTargets(topicPrimaryDisease),
+          fetchRxNav(topicPrimaryDrug),
+          fetchUMLS(topicPrimaryDisease, topicUmlsApiKey)
+        ]);
+
+        parsedCase.opentargets_data = opentargetsData;
+        parsedCase.rxnav_data = rxnavData;
+        parsedCase.umls_data = umlsData;
+      } catch (apiErr) {
+        console.error("Error fetching para-clinical data:", apiErr);
+      }
+// Ensure key identifiers are locked in
       parsedCase.id = generatedId;
       if (!parsedCase.name) parsedCase.name = "Simulated Patient";
       if (!parsedCase.vitals) parsedCase.vitals = { heartRate: 75, bloodPressure: "120/80", oxygenSat: 98, respRate: 16 };
