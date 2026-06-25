@@ -146,6 +146,36 @@ export default function ParaClinicalLab({
       setEvaluationResult(mockResult);
       setIsSubmitting(false);
 
+      // We need to construct a CaseEvaluation object to push it to the history
+      // since ParaClinicalLab handles questions rather than a standard submission, we can map it.
+      const evaluationToSave: CaseEvaluation = {
+        id: `eval-${Date.now()}`,
+        caseName: caseData.name,
+        caseId: caseData.id,
+        patientName: caseData.name,
+        studentSubmission: {
+          historyFindings: "N/A (Evaluated in ParaClinical Lab)",
+          physicalFindings: "N/A (Evaluated in ParaClinical Lab)",
+          differentialDiagnosis: "N/A",
+          finalDiagnosis: caseData.correctAnswers?.finalDiagnosis || "Unspecified",
+          managementPlan: caseData.correctAnswers?.management?.join(", ") || "Unspecified"
+        },
+        aiFeedback: {
+          overallFeedback: "This case was evaluated purely on foundational ParaClinical sciences rather than standard clinical OSCE competencies.",
+          historyRating: 0,
+          examRating: 0,
+          diagnosticRating: 0,
+          managementRating: 0,
+          strengths: ["Focused on biological pathways"],
+          weaknesses: []
+        },
+        paraClinicalSubmission: questions.map(q => ({ question: q.question, answer: q.answer })),
+        paraClinicalFeedback: mockResult,
+        score: Math.floor((mockResult.rating / 5) * 100),
+        createdAt: new Date().toISOString()
+      };
+      onEvaluationCompleted(evaluationToSave);
+
       // Create evaluation object
       const sub = questions.map(q => ({ question: q.question, answer: q.answer }));
       const newScore = Math.floor((rating / 5) * 100);

@@ -38,6 +38,84 @@ export const PRESET_CASES: PatientCase[] = [
         "Echocardiogram once stabilized to evaluate ejection fraction",
       ],
     },
+    opentargets_data: {
+    "disease": {
+        "id": "EFO_0003144",
+        "name": "heart failure",
+        "description": "A cardiac syndrome that is characterized by an abnormality of cardiac function... ",
+        "associatedTargets": {
+            "rows": [
+                {
+                    "target": {
+                        "approvedSymbol": "NPPA",
+                        "approvedName": "natriuretic peptide A"
+                    },
+                    "score": 0.85
+                },
+                {
+                    "target": {
+                        "approvedSymbol": "ACE",
+                        "approvedName": "angiotensin I converting enzyme"
+                    },
+                    "score": 0.72
+                },
+                {
+                    "target": {
+                        "approvedSymbol": "AGTR1",
+                        "approvedName": "angiotensin II receptor type 1"
+                    },
+                    "score": 0.69
+                }
+            ]
+        }
+    }
+},
+    rxnav_data: {
+    "searchData": {
+        "drugGroup": {
+            "conceptGroup": [
+                {
+                    "conceptProperties": [
+                        {
+                            "rxcui": "4603",
+                            "name": "furosemide 40 MG Oral Tablet"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "classData": {
+        "rxclassDrugInfoList": {
+            "rxclassDrugInfo": [
+                {
+                    "rxclassMinConceptItem": {
+                        "className": "Loop Diuretics"
+                    }
+                },
+                {
+                    "rxclassMinConceptItem": {
+                        "className": "Sulfonamide Derivatives"
+                    }
+                }
+            ]
+        }
+    }
+},
+    umls_data: {
+    "search": {
+        "ui": "C0018801",
+        "name": "Heart failure",
+        "uri": "https://uts-ws.nlm.nih.gov/rest/content/2023AB/CUI/C0018801"
+    },
+    "details": {
+        "semanticTypes": [
+            {
+                "name": "Disease or Syndrome"
+            }
+        ]
+    }
+}
   },
   {
     id: "sarah-connor-28",
@@ -75,6 +153,84 @@ export const PRESET_CASES: PatientCase[] = [
         "Bedside counseling on safe travel routines and mobilization",
       ],
     },
+    opentargets_data: {
+    "disease": {
+        "id": "EFO_0007106",
+        "name": "pulmonary embolism",
+        "description": "The blockage of the pulmonary artery or one of its branches...",
+        "associatedTargets": {
+            "rows": [
+                {
+                    "target": {
+                        "approvedSymbol": "F2",
+                        "approvedName": "coagulation factor II, thrombin"
+                    },
+                    "score": 0.91
+                },
+                {
+                    "target": {
+                        "approvedSymbol": "F10",
+                        "approvedName": "coagulation factor X"
+                    },
+                    "score": 0.88
+                },
+                {
+                    "target": {
+                        "approvedSymbol": "SERPINC1",
+                        "approvedName": "serpin family C member 1"
+                    },
+                    "score": 0.76
+                }
+            ]
+        }
+    }
+},
+    rxnav_data: {
+    "searchData": {
+        "drugGroup": {
+            "conceptGroup": [
+                {
+                    "conceptProperties": [
+                        {
+                            "rxcui": "67108",
+                            "name": "enoxaparin 100 MG/ML Injectable Solution"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "classData": {
+        "rxclassDrugInfoList": {
+            "rxclassDrugInfo": [
+                {
+                    "rxclassMinConceptItem": {
+                        "className": "Low Molecular Weight Heparins"
+                    }
+                },
+                {
+                    "rxclassMinConceptItem": {
+                        "className": "Anticoagulants"
+                    }
+                }
+            ]
+        }
+    }
+},
+    umls_data: {
+    "search": {
+        "ui": "C0034065",
+        "name": "Pulmonary Embolism",
+        "uri": "https://uts-ws.nlm.nih.gov/rest/content/2023AB/CUI/C0034065"
+    },
+    "details": {
+        "semanticTypes": [
+            {
+                "name": "Disease or Syndrome"
+            }
+        ]
+    }
+}
   },
   {
     id: "robert-chin-45",
@@ -113,6 +269,84 @@ export const PRESET_CASES: PatientCase[] = [
         "Sublingual Nitroglycerin or IV Morphine for pain control if blood pressure permits",
       ],
     },
+    opentargets_data: {
+    "disease": {
+        "id": "EFO_0000612",
+        "name": "myocardial infarction",
+        "description": "Necrosis of the myocardium, as a result of interruption of the blood supply to the area...",
+        "associatedTargets": {
+            "rows": [
+                {
+                    "target": {
+                        "approvedSymbol": "PCSK9",
+                        "approvedName": "proprotein convertase subtilisin/kexin type 9"
+                    },
+                    "score": 0.94
+                },
+                {
+                    "target": {
+                        "approvedSymbol": "LDLR",
+                        "approvedName": "low density lipoprotein receptor"
+                    },
+                    "score": 0.82
+                },
+                {
+                    "target": {
+                        "approvedSymbol": "LPA",
+                        "approvedName": "lipoprotein(a)"
+                    },
+                    "score": 0.79
+                }
+            ]
+        }
+    }
+},
+    rxnav_data: {
+    "searchData": {
+        "drugGroup": {
+            "conceptGroup": [
+                {
+                    "conceptProperties": [
+                        {
+                            "rxcui": "1191",
+                            "name": "Aspirin 81 MG Oral Tablet"
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    "classData": {
+        "rxclassDrugInfoList": {
+            "rxclassDrugInfo": [
+                {
+                    "rxclassMinConceptItem": {
+                        "className": "Salicylates"
+                    }
+                },
+                {
+                    "rxclassMinConceptItem": {
+                        "className": "Platelet Aggregation Inhibitors"
+                    }
+                }
+            ]
+        }
+    }
+},
+    umls_data: {
+    "search": {
+        "ui": "C0027051",
+        "name": "Myocardial Infarction",
+        "uri": "https://uts-ws.nlm.nih.gov/rest/content/2023AB/CUI/C0027051"
+    },
+    "details": {
+        "semanticTypes": [
+            {
+                "name": "Disease or Syndrome"
+            }
+        ]
+    }
+}
   },
 ];
 

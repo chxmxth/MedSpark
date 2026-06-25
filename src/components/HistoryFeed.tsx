@@ -16,6 +16,7 @@ import {
   Shield,
   Target
 } from "lucide-react";
+import { getApiUrl } from "../lib/api";
 
 interface HistoryProps {
   evaluations: CaseEvaluation[];
@@ -39,7 +40,7 @@ export default function HistoryFeed({ evaluations, userProfile, onUpgrade }: His
       // with evaluation.studentSubmission.finalDiagnosis and managementPlan.
       // But we will simulate it here to meet the frontend requirements
 
-      const res = await fetch("/api/paraclinicals", {
+      const res = await fetch(getApiUrl("/api/paraclinicals"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
