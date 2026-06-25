@@ -921,10 +921,10 @@ app.post("/api/paraclinicals", async (req, res) => {
         }
       `;
 
-      const searchRes = await fetch("https://api.opentargets.io/api/v4/graphql", {
+      const searchRes = await fetch("https://api.platform.opentargets.org/api/v4/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: openTargetsQuery, variables: { queryString: diagnosis } })
+        body: JSON.stringify({ query: openTargetsQuery, variables: { queryString: diagnosis.split(" ").slice(0, 3).join(" ").replace(/[^a-zA-Z0-9 ]/g, "") } })
       });
       const searchData = await searchRes.json();
 
@@ -949,7 +949,7 @@ app.post("/api/paraclinicals", async (req, res) => {
           }
         `;
 
-        const targetsRes = await fetch("https://api.opentargets.io/api/v4/graphql", {
+        const targetsRes = await fetch("https://api.platform.opentargets.org/api/v4/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query: targetsQuery, variables: { efoId: diseaseId } })
