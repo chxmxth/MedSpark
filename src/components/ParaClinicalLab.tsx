@@ -37,6 +37,8 @@ export default function ParaClinicalLab({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<any>(null);
 
+  const [isHpiExpanded, setIsHpiExpanded] = useState(false);
+
   const handleOpenSourceModal = (type: "short" | "long") => {
     const isFree = userProfile && userProfile.subscriptionPlan === "Free Tier";
     if (type === "long" && isFree) {
@@ -295,32 +297,33 @@ export default function ParaClinicalLab({
 
         <div className="flex-grow overflow-y-auto p-4 flex flex-col gap-6">
 
-          {/* Schema Display */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-[#050608] border border-slate-800 rounded-lg p-4">
-               <h4 className="font-mono text-xs font-bold text-indigo-400 uppercase mb-3 flex items-center gap-1.5">
-                  <Target className="w-4 h-4" /> OpenTargets Data
-               </h4>
-               <pre className="text-[10px] text-slate-300 font-mono whitespace-pre-wrap overflow-x-auto">
-                 {caseData.opentargets_data ? JSON.stringify(caseData.opentargets_data, null, 2) : "No OpenTargets data populated for this case."}
-               </pre>
+          {/* Chief Complaint Presenting History Display */}
+          <div className="bg-[#050608] border border-slate-800 rounded-lg p-4">
+            <div className="flex justify-between items-center mb-1.5 gap-2">
+              <h4 className="text-[10px] font-black text-slate-500 uppercase font-mono">Chief Complaint Presenting History</h4>
+              <button
+                onClick={() => setIsHpiExpanded(!isHpiExpanded)}
+                className="text-[9px] font-mono uppercase bg-slate-900 hover:bg-slate-850 border border-slate-800 text-emerald-400 hover:text-emerald-300 px-1.5 py-0.5 rounded transition-all active:scale-95 cursor-pointer flex items-center shrink-0"
+              >
+                {isHpiExpanded ? "Collapse" : "Expand"}
+              </button>
             </div>
-            <div className="bg-[#050608] border border-slate-800 rounded-lg p-4">
-               <h4 className="font-mono text-xs font-bold text-sky-400 uppercase mb-3 flex items-center gap-1.5">
-                  <Target className="w-4 h-4" /> RxNav Data
-               </h4>
-               <pre className="text-[10px] text-slate-300 font-mono whitespace-pre-wrap overflow-x-auto">
-                 {caseData.rxnav_data ? JSON.stringify(caseData.rxnav_data, null, 2) : "No RxNav pharmacological data populated."}
-               </pre>
-            </div>
-            <div className="bg-[#050608] border border-slate-800 rounded-lg p-4">
-               <h4 className="font-mono text-xs font-bold text-emerald-400 uppercase mb-3 flex items-center gap-1.5">
-                  <Target className="w-4 h-4" /> UMLS Data
-               </h4>
-               <pre className="text-[10px] text-slate-300 font-mono whitespace-pre-wrap overflow-x-auto">
-                 {caseData.umls_data ? JSON.stringify(caseData.umls_data, null, 2) : "No UMLS semantic data populated."}
-               </pre>
-            </div>
+            <p
+              onClick={() => setIsHpiExpanded(!isHpiExpanded)}
+              className={`text-xs text-slate-350 leading-relaxed cursor-pointer transition-all duration-300 ${
+                isHpiExpanded ? "" : "line-clamp-3 md:hover:line-clamp-none"
+              }`}
+            >
+              {caseData.historyOfPresentIllness}
+            </p>
+            {!isHpiExpanded && (
+              <div
+                onClick={() => setIsHpiExpanded(true)}
+                className="text-[9px] text-slate-500 italic mt-1.5 cursor-pointer hover:text-slate-400 select-none text-center"
+              >
+                Click / Tap to view full history
+              </div>
+            )}
           </div>
 
           <div className="border-t border-slate-800/80 my-2"></div>
