@@ -202,10 +202,10 @@ export default function App() {
 
 
   return (
-    <div className="bg-[#050608] min-h-screen w-full text-slate-100 antialiased font-sans flex flex-col md:flex-row pb-20 md:pb-0 selection:bg-emerald-500/30">
+    <div className="bg-[#050608] min-h-screen w-full text-slate-100 antialiased font-sans flex flex-col md:flex-row pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 selection:bg-emerald-500/30">
       
       {/* 1. TOP BAR Shell: Mobile-only */}
-      <header className="md:hidden fixed top-0 left-0 w-full bg-[#0A0C10] border-b border-slate-800/60 h-16 px-4 z-50 flex items-center justify-between text-white">
+      <header className="md:hidden fixed top-0 left-0 w-full bg-[#0A0C10] border-b border-slate-800/60 h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] px-4 z-50 flex items-center justify-between text-white">
         <div className="flex items-center gap-2.5">
           <Stethoscope className="w-5 h-5 text-emerald-400" />
           <h1 className="font-bold text-sm tracking-widest uppercase text-emerald-400">MediXpark</h1>
@@ -295,7 +295,7 @@ export default function App() {
       </nav>
 
       {/* 3. MAIN CONTENT LAYER Panel (Offsets Desktop Sidebar) */}
-      <main className="flex-grow md:ml-64 flex flex-col min-h-screen pt-16 md:pt-0 min-w-0">
+      <main className="flex-grow md:ml-64 flex flex-col min-h-screen pt-[calc(4rem+env(safe-area-inset-top))] md:pt-0 min-w-0">
         
         {/* Core Header Banner breadcrumb */}
         <div className="hidden md:flex justify-between items-center bg-[#0A0C10] border-b border-slate-800/50 p-6 shadow-md shrink-0">
@@ -370,7 +370,7 @@ export default function App() {
       </main>
 
       {/* 4. BOTTOM NAVIGATION TRAY Bar: Mobile-only */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full h-16 bg-[#0A0C10] border-t border-slate-800/60 p-1 flex justify-around items-center text-xs font-mono uppercase tracking-wider font-bold z-50 shadow-lg text-slate-500 rounded-t-xl overflow-hidden">
+      <nav className="md:hidden fixed bottom-0 left-0 w-full h-[calc(4rem+env(safe-area-inset-bottom))] pb-[env(safe-area-inset-bottom)] bg-[#0A0C10] border-t border-slate-800/60 p-1 flex justify-around items-center text-xs font-mono uppercase tracking-wider font-bold z-50 shadow-lg text-slate-500 rounded-t-xl overflow-hidden">
         <button
           onClick={() => setActiveTab("lab")}
           className={`flex flex-col items-center justify-center p-2.5 rounded-lg text-[10px] font-bold ${
