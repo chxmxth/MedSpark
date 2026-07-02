@@ -88,7 +88,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
       // Create endpoint payload
       const payload = { type, topic };
 
-      const response = await fetch(getApiUrl("api/cases/generate-topic"), {
+      const response = await fetch(getApiUrl("/api/cases/generate-topic"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)

@@ -138,7 +138,7 @@ Guidelines:
     }
 
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-1.5-flash",
       contents: sanitizedContents,
       config: {
         systemInstruction: systemPrompt,
@@ -228,7 +228,7 @@ Evaluate medical students strictly. Return a structured JSON response matching t
 }`;
 
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-1.5-flash",
       contents: evaluationPrompt,
       config: {
         systemInstruction,
@@ -286,7 +286,7 @@ Synthesize evidence-based medicine beautifully in Markdown. Include high-risk wa
     });
 
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-1.5-flash",
       contents: chatContents,
       config: {
         systemInstruction: systemPrompt,
@@ -624,7 +624,7 @@ Output ONLY valid, parsed JSON. Do NOT wrap it in "json" code block quotes \`\`\
     for (let i = 0; i < retries; i++) {
       try {
         const response = await client.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-1.5-flash",
           contents: promptText,
           config: {
             systemInstruction: systemPrompt,
@@ -815,7 +815,7 @@ Output ONLY valid, parsed JSON.`;
     for (let i = 0; i < retries; i++) {
       try {
         const response = await client.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-1.5-flash",
           contents: promptText,
           config: {
             systemInstruction: systemPrompt,

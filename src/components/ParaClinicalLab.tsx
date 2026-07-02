@@ -72,7 +72,7 @@ export default function ParaClinicalLab({
     setIsGeneratingCase(true);
     try {
       const payload = { type, topic };
-      const response = await fetch(getApiUrl("api/cases/generate-topic"), {
+      const response = await fetch(getApiUrl("/api/cases/generate-topic"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -94,7 +94,7 @@ export default function ParaClinicalLab({
 
   const handleGenerateRandomCase = async (type: "short" | "long") => {
     try {
-      const response = await fetch(getApiUrl("api/cases/generate-random"), {
+      const response = await fetch(getApiUrl("/api/cases/generate-random"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type })
