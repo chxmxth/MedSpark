@@ -2,9 +2,8 @@ import React, { useState, FormEvent, useEffect } from "react";
 import { UserProfile } from "../types";
 import { 
   auth, 
-  signInWithGoogle, 
-  logOutUser 
 } from "../lib/firebase";
+import { signInWithGoogle, logOutUser } from "../lib/auth";
 import RevenueCatPaywall from "./RevenueCatPaywall";
 import { 
   User, 
