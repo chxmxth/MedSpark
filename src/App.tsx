@@ -362,7 +362,8 @@ export default function App() {
           <div className={activeTab === "profile" ? "block" : "hidden"}>
             <UserProfileSettings 
               profile={userProfile} 
-              onChangeProfile={handleUpdateProfile} 
+              onChangeProfile={handleUpdateProfile}
+              onLoginSuccess={() => setActiveTab("lab")}
             />
           </div>
         </div>

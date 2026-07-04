@@ -28,9 +28,10 @@ import ReturnPolicyModal from "./ReturnPolicyModal";
 interface UserProfileProps {
   profile: UserProfile;
   onChangeProfile: (updated: UserProfile) => void;
+  onLoginSuccess: () => void;
 }
 
-export default function UserProfileSettings({ profile, onChangeProfile }: UserProfileProps) {
+export default function UserProfileSettings({ profile, onChangeProfile, onLoginSuccess }: UserProfileProps) {
   const [emailInput, setEmailInput] = useState(profile.email);
   const [firstName, setFirstName] = useState(profile.firstName);
   const [lastName, setLastName] = useState(profile.lastName);
@@ -73,8 +74,9 @@ export default function UserProfileSettings({ profile, onChangeProfile }: UserPr
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
+      onLoginSuccess();
     } catch (error) {
-      console.error(error);
+      console.error("Authentication failed:", error);
       alert("Authentication failed. Please verify your settings or try again. If on localhost, verify your domain is whitelisted in Firebase Console.\n\nDetailed error: " + (error.message || error));
     }
   };
