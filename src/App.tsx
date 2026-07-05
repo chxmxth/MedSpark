@@ -159,11 +159,11 @@ export default function App() {
       };
       await saveUserProfileDoc(auth.currentUser.uid, updatedProfile);
       setUserProfile(updatedProfile);
+      // Optimistically update the UI to avoid waiting for the subscription delay
+      setCaseHistory((prev) => [evaluation, ...prev]);
     } else {
-      // Memory state only for guests (non-Free Tier)
-      if (!isFree) {
-        setCaseHistory((prev) => [evaluation, ...prev]);
-      }
+      // Memory state only for guests
+      setCaseHistory((prev) => [evaluation, ...prev]);
       setUserProfile((prev) => ({
         ...prev,
         casesCompleted: prev.casesCompleted + 1
