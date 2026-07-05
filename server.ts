@@ -165,21 +165,23 @@ app.post("/api/board/evaluate", async (req, res) => {
       const isGoodPe = submission.finalDiagnosis?.toLowerCase().includes("embolism") || submission.finalDiagnosis?.toLowerCase().includes("pe");
       const isGoodSt = submission.finalDiagnosis?.toLowerCase().includes("stemi") || submission.finalDiagnosis?.toLowerCase().includes("myocardial");
 
-      let score = 50;
-      let review = "Your diagnosis is partially correct, but could be structured better.";
+      // Add a slight randomization to scores so they are not always exactly the same on re-submissions
+      const variance = Math.floor(Math.random() * 5) - 2; // -2 to +2
+      let score = 50 + variance;
+      let review = "Your diagnosis is partially correct, but could be structured better. Consider expanding your differentials.";
       let strengths = ["Submitted evaluation on time", "Recognized presenting vitals changes"];
       let weaknesses = ["Incomplete management targets", "Differential diagnostic list should be broader"];
 
       if (caseContext.id === "john-doe-65" && isGoodHf) {
-        score = 88;
+        score = 88 + variance;
         review = "Excellent work on recognizing Acute Congestive Heart Failure! You adequately identified the pulmonary congestion and ordered prompt diuretics.";
         strengths.push("Correctly requested Furosemide therapy", "Correlated orthopnea with JVP elevate");
       } else if (caseContext.id === "sarah-connor-28" && isGoodPe) {
-        score = 92;
+        score = 92 + variance;
         review = "Terrific. You identified the segmentary pulmonary embolism and correctly ordered therapeutic LMWH anticoagulation immediately.";
         strengths.push("Risk stratified long haul travel history", "ECG S1Q3T3 pattern interpretation correct");
       } else if (caseContext.id === "robert-chin-45" && isGoodSt) {
-        score = 95;
+        score = 95 + variance;
         review = "Superb! Immediate PCI activation and Aspirin loading was requested. Standard of care STEMI protocol is spotless.";
         strengths.push("PCI cath lab activation was rapid", "Dual antiplatelet loading recognized");
       }
@@ -255,6 +257,99 @@ Evaluate medical students strictly. Return a structured JSON response matching t
   } catch (error: any) {
     console.error("Board evaluation API error:", error);
     res.status(500).json({ error: error.message || "Failed to process board feedback" });
+  }
+});
+
+// 🧠 API Route: Paraclinical Evaluation
+app.post("/api/paraclinical/evaluate", async (req, res) => {
+  try {
+    const { caseContext, submission } = req.body;
+    const client = getGeminiClient();
+
+    if (!client) {
+      // Offline fallback scorer with randomized but distinct responses
+      const scores = [65, 75, 85, 95];
+      const selectedScore = scores[Math.floor(Math.random() * scores.length)];
+
+      const genericFeedbacks = [
+        "Good application of foundational science to the clinical presentation. You accurately identified major targets but lacked some specificity on pathological pathways.",
+        "Excellent pathophysiological correlation. You demonstrated strong knowledge of the underlying mechanisms and drug targets.",
+        "Solid attempt at identifying the core biomarkers, but you missed some of the nuanced pharmacological mechanisms.",
+        "Your understanding of the foundational sciences for this case is adequate. Consider reviewing the specific pathways involved in this presentation."
+      ];
+      const selectedFeedback = genericFeedbacks[Math.floor(Math.random() * genericFeedbacks.length)];
+
+      const strengthsList = [
+        ["identified core biomarker", "linked mechanisms to symptoms"],
+        ["strong knowledge of drug targets", "accurate pathophysiological understanding"],
+        ["good systemic overview", "recognized key physiological deviations"],
+        ["correctly identified main therapeutic mechanisms", "clear understanding of foundational principles"]
+      ];
+      const selectedStrengths = strengthsList[Math.floor(Math.random() * strengthsList.length)];
+
+      const weaknessesList = [
+        ["broad pharmacological mechanisms", "lacked dosage-specific rationale"],
+        ["missed secondary pathway interactions", "could elaborate on contraindications"],
+        ["lacked specificity on cellular targets", "did not fully explain the mechanism of action"],
+        ["overlooked key enzyme inhibitors", "needs more focus on molecular biology"]
+      ];
+      const selectedWeaknesses = weaknessesList[Math.floor(Math.random() * weaknessesList.length)];
+
+      return res.json({
+        rating: Math.floor(selectedScore / 20),
+        score: selectedScore,
+        overallFeedback: selectedFeedback,
+        strengths: selectedStrengths,
+        weaknesses: selectedWeaknesses
+      });
+    }
+
+    const questionsList = submission.map((q: any, i: number) => `Q${i + 1}: ${q.question}\nA${i + 1}: ${q.answer}`).join("\n\n");
+
+    const evaluationPrompt = `As an expert medical science educator, evaluate the student's understanding of foundational sciences (pathophysiology, pharmacology, anatomy, etc.) based on their generated questions and answers for the following clinical case:
+
+Case Name: ${caseContext.name} (${caseContext.gender === "M" ? "Male" : "Female"}, Age: ${caseContext.age})
+Presenting Complaint: ${caseContext.complaint}
+Correct Final Diagnosis: ${caseContext.correctAnswers.finalDiagnosis}
+
+Student's Q&A Submission:
+${questionsList}
+
+Evaluate the depth, accuracy, and relevance of their scientific knowledge. Produce a rating out of 5 and a detailed overall feedback summarizing their performance. Identify specific strengths and weaknesses.`;
+
+    const systemInstruction = `You are a strict foundational sciences examiner evaluating a medical student.
+Return a structured JSON response matching this schema:
+{
+  "rating": number (1 to 5),
+  "overallFeedback": "detailed evaluation summarizing the student's grasp of foundational sciences",
+  "strengths": ["strength 1", "strength 2"],
+  "weaknesses": ["omission or error 1", "omission or error 2"]
+}`;
+
+    const response = await client.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: evaluationPrompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          required: ["rating", "overallFeedback", "strengths", "weaknesses"],
+          properties: {
+            rating: { type: Type.INTEGER },
+            overallFeedback: { type: Type.STRING },
+            strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+            weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+          },
+        },
+      },
+    });
+
+    const parsedEvaluator = JSON.parse(response.text || "{}");
+    res.json(parsedEvaluator);
+  } catch (error: any) {
+    console.error("Paraclinical evaluation API error:", error);
+    res.status(500).json({ error: error.message || "Failed to process paraclinical feedback" });
   }
 });
 

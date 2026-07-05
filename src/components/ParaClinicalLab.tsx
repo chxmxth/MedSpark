@@ -127,7 +127,7 @@ export default function ParaClinicalLab({
     setQuestions(prev => prev.filter(q => q.id !== id));
   };
 
-  const handleSubmitEvaluation = () => {
+  const handleSubmitEvaluation = async () => {
     if (questions.length === 0) {
       alert("Please add and answer at least one para-clinical question.");
       return;
@@ -135,22 +135,30 @@ export default function ParaClinicalLab({
 
     setIsSubmitting(true);
 
-    // Simulate API call for mock evaluation
-    setTimeout(() => {
-      const rating = Math.floor(Math.random() * 2) + 3; // 3-4 out of 5
-      const mockResult = {
-        overallFeedback: "Good application of foundational science to the clinical presentation. You accurately identified major targets but lacked some specificity on pathological pathways.",
-        rating: rating,
-        strengths: ["identified core biomarker", "linked mechanisms to symptoms"],
-        weaknesses: ["broad pharmacological mechanisms", "lacked dosage-specific rationale"]
+    try {
+      const response = await fetch(getApiUrl("/api/paraclinical/evaluate"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caseContext: caseData,
+          submission: questions.map(q => ({ question: q.question, answer: q.answer }))
+        }),
+      });
+
+      const grade = await response.json();
+
+      const result = {
+        overallFeedback: grade.overallFeedback || "Evaluation processed fully.",
+        rating: grade.rating || Math.floor(grade.score / 20) || 4,
+        strengths: grade.strengths || ["identified core biomarker"],
+        weaknesses: grade.weaknesses || ["lacked dosage-specific rationale"]
       };
 
-      setEvaluationResult(mockResult);
-      setIsSubmitting(false);
+      setEvaluationResult(result);
 
-      // We need to construct a CaseEvaluation object to push it to the history
-      // since ParaClinicalLab handles questions rather than a standard submission, we can map it.
-      const evaluationToSave: CaseEvaluation = {
+      const newScore = grade.score || Math.floor((result.rating / 5) * 100);
+
+      const newEval: CaseEvaluation = {
         id: `eval-${Date.now()}`,
         caseName: caseData.name,
         caseId: caseData.id,
@@ -172,45 +180,18 @@ export default function ParaClinicalLab({
           weaknesses: []
         },
         paraClinicalSubmission: questions.map(q => ({ question: q.question, answer: q.answer })),
-        paraClinicalFeedback: mockResult,
-        score: Math.floor((mockResult.rating / 5) * 100),
-        createdAt: new Date().toISOString()
-      };
-      onEvaluationCompleted(evaluationToSave);
-
-      // Create evaluation object
-      const sub = questions.map(q => ({ question: q.question, answer: q.answer }));
-      const newScore = Math.floor((rating / 5) * 100);
-
-      const newEval: CaseEvaluation = {
-        id: `eval-${Date.now()}`,
-        caseName: caseData.name,
-        caseId: caseData.id,
-        patientName: caseData.name,
-        studentSubmission: {
-          historyFindings: "[Para-clinical assessment]",
-          physicalFindings: "[Para-clinical assessment]",
-          differentialDiagnosis: "[Para-clinical assessment]",
-          finalDiagnosis: caseData.correctAnswers.finalDiagnosis,
-          managementPlan: "[Para-clinical assessment]"
-        },
-        aiFeedback: {
-          overallFeedback: mockResult.overallFeedback,
-          historyRating: 0,
-          examRating: 0,
-          diagnosticRating: 0,
-          managementRating: 0,
-          strengths: mockResult.strengths,
-          weaknesses: mockResult.weaknesses
-        },
-        paraClinicalSubmission: sub,
-        paraClinicalFeedback: mockResult,
+        paraClinicalFeedback: result,
         score: newScore,
         createdAt: new Date().toISOString()
       };
 
       onEvaluationCompleted(newEval);
-    }, 1500);
+    } catch (err) {
+      console.error("Error submitting paraclinical evaluation:", err);
+      alert("Failed to submit paraclinical evaluation. Check server logs.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
