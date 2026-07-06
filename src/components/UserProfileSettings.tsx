@@ -111,15 +111,6 @@ export default function UserProfileSettings({ profile, onChangeProfile, onLoginS
     }
   };
 
-  // Simulate limit resets
-  const handleResetUsage = () => {
-    onChangeProfile({
-      ...profile,
-      casesCompleted: 0,
-      assistantQueriesUsed: 0
-    });
-    alert("Simulated usage records reset back to 0. Excellent for testing limits!");
-  };
 
   if (!firebaseUser) {
     return (
@@ -470,13 +461,7 @@ export default function UserProfileSettings({ profile, onChangeProfile, onLoginS
           <div className="p-4 bg-slate-950/60 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h4 className="font-bold text-xs font-mono tracking-wider text-slate-400 uppercase">OSCE Portal Settings</h4>
             
-            {/* Reset button purely for testing */}
-            <button 
-              onClick={handleResetUsage}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] uppercase font-mono font-bold bg-[#050608] border border-slate-800 hover:border-slate-750 text-slate-300 rounded-lg active:scale-95 transition-all w-auto cursor-pointer"
-            >
-              <RotateCw className="w-3.5 h-3.5 shrink-0" /> Reset simulated quota metrics
-            </button>
+
           </div>
 
           <div className="p-5 flex flex-col gap-4 text-xs font-semibold text-slate-300">
