@@ -70,6 +70,11 @@ export default function ClinicalAssistant({ decreaseAssistantQueries, userProfil
       });
 
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch from the server.");
+      }
+
       const botMsg: Message = {
         id: `assist-msg-reply-${Date.now()}`,
         sender: "assistant",
@@ -78,12 +83,12 @@ export default function ClinicalAssistant({ decreaseAssistantQueries, userProfil
       };
 
       setMessages(prev => [...prev, botMsg]);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       const errMsg: Message = {
         id: `assist-msg-err-${Date.now()}`,
         sender: "assistant",
-        text: "Error querying server-side Guidelines agent. Please confirm that your environment variables are set in Settings.",
+        text: err.message || "Error querying server-side Guidelines agent. Please confirm that your environment variables are set in Settings.",
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, errMsg]);
