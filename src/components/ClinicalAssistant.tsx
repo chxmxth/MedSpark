@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 
 interface AssistantProps {
-  decreaseAssistantQueries: () => boolean;
+  hasAssistantQueries: () => boolean;
   userProfile: any;
 }
 
-export default function ClinicalAssistant({ decreaseAssistantQueries, userProfile }: AssistantProps) {
+export default function ClinicalAssistant({ hasAssistantQueries, userProfile }: AssistantProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "assist-start",
@@ -42,7 +42,7 @@ export default function ClinicalAssistant({ decreaseAssistantQueries, userProfil
     if (!rawQuery.trim() || isBotResponding) return;
 
     // Check usage query limits
-    const isOk = decreaseAssistantQueries();
+    const isOk = hasAssistantQueries();
     if (!isOk) {
       alert("AI Query limit reached on your current Free Tier (10 queries/mo)! Upgrade to Resident Pro or Faculty Advisor Plan inside the Settings panel to unlock up to 1,000 queries.");
       return;

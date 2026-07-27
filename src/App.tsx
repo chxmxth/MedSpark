@@ -31,6 +31,8 @@ import { Purchases } from "@revenuecat/purchases-capacitor";
 import { Purchases as PurchasesWeb } from "@revenuecat/purchases-js";
 import { getApiUrl } from "./lib/api";
 
+let isRevenueCatConfigured = false;
+
 export default function App() {
   // Navigation tabs state
   const [activeTab, setActiveTab] = useState<"lab" | "paraclinical" | "assistant" | "history" | "profile">("lab");
@@ -56,22 +58,43 @@ export default function App() {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       // Initialize RevenueCat for native applications and web with the correct User ID
       try {
-        const res = await fetch(getApiUrl("/api/revenuecat/keys"));
-        if (res.ok) {
-          const keys = await res.json();
-          const platform = Capacitor.getPlatform();
-          const appUserId = firebaseUser?.uid || "web_guest_user";
+        const appUserId = firebaseUser?.uid || "web_guest_user";
+        const platform = Capacitor.getPlatform();
 
-          if (platform === "ios" && keys.iosKey) {
-            await Purchases.configure({ apiKey: keys.iosKey, appUserID: appUserId });
-          } else if (platform === "android" && keys.androidKey) {
-            await Purchases.configure({ apiKey: keys.androidKey, appUserID: appUserId });
-          } else if (platform === "web" && keys.webKey) {
-            PurchasesWeb.configure(keys.webKey, appUserId);
+        if (!isRevenueCatConfigured) {
+          const res = await fetch(getApiUrl("/api/revenuecat/keys"));
+          if (res.ok) {
+            const keys = await res.json();
+
+            if (platform === "ios" && keys.iosKey) {
+              await Purchases.configure({ apiKey: keys.iosKey, appUserID: appUserId });
+            } else if (platform === "android" && keys.androidKey) {
+              await Purchases.configure({ apiKey: keys.androidKey, appUserID: appUserId });
+            } else if (platform === "web" && keys.webKey) {
+              PurchasesWeb.configure(keys.webKey, appUserId);
+            }
+            isRevenueCatConfigured = true;
+          }
+        } else {
+          // If already configured, handle logging in and out
+          if (firebaseUser) {
+            if (platform === "ios" || platform === "android") {
+              await Purchases.logIn({ appUserID: firebaseUser.uid });
+            } else if (platform === "web") {
+              await PurchasesWeb.getSharedInstance().changeUser(firebaseUser.uid);
+            }
+          } else {
+            if (platform === "ios" || platform === "android") {
+              await Purchases.logOut();
+            } else if (platform === "web") {
+              // RevenueCat Web doesn't have a direct logOut currently, typically you changeUser to anonymous ID or clear state.
+              // For web, if user logs out, they usually get redirected, or we can use changeUser("web_guest_user")
+              await PurchasesWeb.getSharedInstance().changeUser("web_guest_user");
+            }
           }
         }
       } catch (e) {
-        console.error("Failed to initialize RevenueCat keys from backend", e);
+        console.error("Failed to initialize or update RevenueCat user state", e);
       }
 
       setCurrentUser(firebaseUser);
@@ -175,7 +198,7 @@ export default function App() {
     }
   };
 
-  const decreaseAvailableCases = (): boolean => {
+  const hasAvailableCases = (): boolean => {
     const caseLimit = userProfile.subscriptionPlan === "Free Tier" ? 3 : userProfile.subscriptionPlan === "Resident Pro" ? 200 : 500;
     if (userProfile.casesCompleted >= caseLimit) {
       return false; // Gated!
@@ -183,7 +206,7 @@ export default function App() {
     return true;
   };
 
-  const decreaseAssistantQueries = (): boolean => {
+  const hasAssistantQueries = (): boolean => {
     const queryLimit = userProfile.subscriptionPlan === "Free Tier" ? 10 : 1000;
     if (userProfile.assistantQueriesUsed >= queryLimit) {
       return false; // Gated!
@@ -330,7 +353,7 @@ export default function App() {
             <SimulatorLab 
               onEvaluationCompleted={handleCompleteCase}
               userProfile={userProfile}
-              decreaseAvailableCases={decreaseAvailableCases}
+              hasAvailableCases={hasAvailableCases}
               onUpgrade={() => setActiveTab("profile")}
             />
           </div>
@@ -339,14 +362,14 @@ export default function App() {
             <ParaClinicalLab
               onEvaluationCompleted={handleCompleteCase}
               userProfile={userProfile}
-              decreaseAvailableCases={decreaseAvailableCases}
+              hasAvailableCases={hasAvailableCases}
               onUpgrade={() => setActiveTab("profile")}
             />
           </div>
 
           <div className={activeTab === "assistant" ? "block" : "hidden"}>
             <ClinicalAssistant 
-              decreaseAssistantQueries={decreaseAssistantQueries}
+              hasAssistantQueries={hasAssistantQueries}
               userProfile={userProfile}
             />
           </div>

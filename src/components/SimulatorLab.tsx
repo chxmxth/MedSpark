@@ -28,11 +28,11 @@ import { TextToSpeech } from "@capacitor-community/text-to-speech";
 interface LabProps {
   onEvaluationCompleted: (evaluation: CaseEvaluation) => void;
   userProfile: any;
-  decreaseAvailableCases: () => boolean;
+  hasAvailableCases: () => boolean;
   onUpgrade: () => void;
 }
 
-export default function SimulatorLab({ onEvaluationCompleted, userProfile, decreaseAvailableCases, onUpgrade }: LabProps) {
+export default function SimulatorLab({ onEvaluationCompleted, userProfile, hasAvailableCases, onUpgrade }: LabProps) {
   // Scenario Selection state
   const [casesList, setCasesList] = useState<PatientCase[]>(PRESET_CASES);
   const [selectedCaseId, setSelectedCaseId] = useState<string>("john-doe-65");
@@ -74,7 +74,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
     }
 
     // Check plan limits first
-    const isOk = decreaseAvailableCases();
+    const isOk = hasAvailableCases();
     if (!isOk) {
       alert("Scenario Limit Reached! Your Free Tier is gated to 3 cases. Please upgrade to Resident Pro inside the Settings panel to simulate up to 200 cases!");
       onUpgrade();
@@ -126,7 +126,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
     }
 
     // Check plan limits first
-    const isOk = decreaseAvailableCases();
+    const isOk = hasAvailableCases();
     if (!isOk) {
       alert("Scenario Limit Reached! Your Free Tier is gated to 3 cases. Please upgrade to Resident Pro inside the Settings panel to simulate up to 200 cases!");
       onUpgrade();
@@ -479,7 +479,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
   // Submit Evaluation to clinical Board
   const triggerFormSubmission = async () => {
     // Check if limits exceeded
-    const isOk = decreaseAvailableCases();
+    const isOk = hasAvailableCases();
     if (!isOk) {
       alert("Scenario Limit Reached! Your Free Tier is gated to 3 cases. Please change tier to PRO in the Profile panel to simulate unlimited cases!");
       return;

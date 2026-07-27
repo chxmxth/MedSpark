@@ -11,14 +11,14 @@ import {
 interface ParaClinicalLabProps {
   onEvaluationCompleted: (evaluation: CaseEvaluation) => void;
   userProfile: any;
-  decreaseAvailableCases: () => boolean;
+  hasAvailableCases: () => boolean;
   onUpgrade: () => void;
 }
 
 export default function ParaClinicalLab({
   onEvaluationCompleted,
   userProfile,
-  decreaseAvailableCases,
+  hasAvailableCases,
   onUpgrade
 }: ParaClinicalLabProps) {
   const [casesList, setCasesList] = useState<PatientCase[]>(PRESET_CASES);
@@ -62,7 +62,7 @@ export default function ParaClinicalLab({
       return;
     }
 
-    const isOk = decreaseAvailableCases();
+    const isOk = hasAvailableCases();
     if (!isOk) {
       alert("Scenario Limit Reached! Please upgrade to simulate up to 200 cases.");
       onUpgrade();
