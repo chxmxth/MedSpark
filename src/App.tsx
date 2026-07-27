@@ -36,16 +36,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<"lab" | "paraclinical" | "assistant" | "history" | "profile">("lab");
 
   // Global synchronized state
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    email: "sarah.jenkins@hospital.org",
-    firstName: "Sarah",
-    lastName: "Jenkins",
-    role: "pro", // Preset to PRO resident so they can fully explore without restriction of limits out-of-the-box!
-    casesCompleted: 0,
-    assistantQueriesUsed: 0,
-    subscriptionActive: true,
-    subscriptionPlan: "Resident Pro"
-  });
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const [caseHistory, setCaseHistory] = useState<CaseEvaluation[]>(PRESEEDED_HISTORY);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
@@ -138,9 +129,9 @@ export default function App() {
       } else {
         // Offline / Guest Fallback State (Starts as student / Free Tier)
         setUserProfile({
-          email: "sarah.jenkins@hospital.org",
-          firstName: "Sarah",
-          lastName: "Jenkins",
+          email: "",
+          firstName: "",
+          lastName: "",
           role: "student",
           casesCompleted: 0,
           assistantQueriesUsed: 0,
@@ -164,6 +155,7 @@ export default function App() {
 
   // Quota limits check handlers
   const handleCompleteCase = async (evaluation: CaseEvaluation) => {
+    if (!userProfile) return;
     const isFree = userProfile.subscriptionPlan === "Free Tier";
 
     if (auth.currentUser) {
@@ -182,10 +174,10 @@ export default function App() {
     } else {
       // Memory state only for guests
       setCaseHistory((prev) => [evaluation, ...prev]);
-      setUserProfile((prev) => ({
+      setUserProfile((prev) => prev ? {
         ...prev,
         casesCompleted: prev.casesCompleted + 1
-      }));
+      } : null);
     }
 
     if (isFree) {
@@ -194,6 +186,7 @@ export default function App() {
   };
 
   const decreaseAvailableCases = (): boolean => {
+    if (!userProfile) return false;
     const caseLimit = userProfile.subscriptionPlan === "Free Tier" ? 3 : userProfile.subscriptionPlan === "Resident Pro" ? 200 : 500;
     if (userProfile.casesCompleted >= caseLimit) {
       return false; // Gated!
@@ -202,6 +195,7 @@ export default function App() {
   };
 
   const decreaseAssistantQueries = (): boolean => {
+    if (!userProfile) return false;
     const queryLimit = userProfile.subscriptionPlan === "Free Tier" ? 10 : 1000;
     if (userProfile.assistantQueriesUsed >= queryLimit) {
       return false; // Gated!
@@ -217,7 +211,13 @@ export default function App() {
     return true;
   };
 
-
+  if (isAuthLoading || !userProfile) {
+    return (
+      <div className="min-h-screen bg-[#050608] flex items-center justify-center">
+        <Stethoscope className="w-12 h-12 text-emerald-500 animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#050608] min-h-screen w-full text-slate-100 antialiased font-sans flex flex-col md:flex-row pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 selection:bg-emerald-500/30">
