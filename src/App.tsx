@@ -35,6 +35,9 @@ export default function App() {
   // Navigation tabs state
   const [activeTab, setActiveTab] = useState<"lab" | "paraclinical" | "assistant" | "history" | "profile">("lab");
 
+  // Bootloader State
+  const [serverStatus, setServerStatus] = useState<"connecting" | "connected" | "error">("connecting");
+
   // Global synchronized state
   const [userProfile, setUserProfile] = useState<UserProfile>({
     email: "sarah.jenkins@hospital.org",
@@ -51,8 +54,42 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
 
+  const checkServerHealth = async (attempt = 0) => {
+    try {
+      setServerStatus("connecting");
+      const res = await fetch(getApiUrl("/api/health"), {
+        // Short timeout for health checks
+        signal: AbortSignal.timeout(5000),
+      });
+
+      if (res.ok) {
+        setServerStatus("connected");
+        return true;
+      } else {
+        throw new Error("Server responded with an error status");
+      }
+    } catch (err) {
+      if (attempt < 3) { // Max 4 attempts (0, 1, 2, 3)
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return checkServerHealth(attempt + 1);
+      } else {
+        setServerStatus("error");
+        return false;
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Initial bootloader check
+    checkServerHealth();
+  }, []);
+
   // Monitor Authentication and Sync Real-Time Database Collections
   useEffect(() => {
+    // Do not initialize auth or data until the server is connected
+    if (serverStatus !== "connected") return;
+
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       // Initialize RevenueCat for native applications and web with the correct User ID
       try {
@@ -134,7 +171,7 @@ export default function App() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [serverStatus]);
 
   // Update profile handler supporting Firestore sync
   const handleUpdateProfile = async (updated: UserProfile) => {
@@ -200,6 +237,40 @@ export default function App() {
   };
 
 
+
+  if (serverStatus !== "connected") {
+    return (
+      <div className="bg-[#050608] min-h-screen w-full flex flex-col items-center justify-center text-white px-6">
+        <div className="flex flex-col items-center gap-6 max-w-sm text-center">
+          <div className={`p-4 rounded-2xl ${serverStatus === "error" ? "bg-red-500/10 border border-red-500/20 text-red-500" : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"}`}>
+            {serverStatus === "error" ? (
+              <AlertTriangle className="w-12 h-12" />
+            ) : (
+              <Stethoscope className="w-12 h-12 animate-pulse" />
+            )}
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-black font-mono tracking-widest uppercase mb-2">MediXpark</h1>
+            <p className="text-slate-400 text-sm">
+              {serverStatus === "error"
+                ? "Unable to reach the server. Please check your connection."
+                : "Connecting to Medixpark..."}
+            </p>
+          </div>
+
+          {serverStatus === "error" && (
+            <button
+              onClick={() => checkServerHealth(0)}
+              className="mt-4 px-8 py-3 bg-white text-black font-bold rounded-lg hover:bg-slate-200 transition-colors"
+            >
+              Try Again
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#050608] min-h-screen w-full text-slate-100 antialiased font-sans flex flex-col md:flex-row pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0 selection:bg-emerald-500/30">

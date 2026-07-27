@@ -460,6 +460,11 @@ app.post("/api/revenuecat/process", async (req, res) => {
   }
 });
 
+// 🟢 Lightweight Health Check to wake up Cloud Run
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 // 🩺 API Configuration Details (including RevenueCat & UMLS check endpoints)
 app.get("/api/config/status", (req, res) => {
   res.json({
