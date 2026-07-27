@@ -177,6 +177,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
   // Voice state
   const [isListening, setIsListening] = useState(false);
   const webSpeechRecognitionRef = useRef<any>(null);
+  const speechTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Diagnostic states
   const [orderedDiagnostics, setOrderedDiagnostics] = useState<{ [key: string]: "pending" | "completed" }>({});
@@ -229,6 +230,13 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isPatientTyping]);
 
+  useEffect(() => {
+    // Cleanup timeout on unmount
+    return () => {
+      clearSpeechTimeout();
+    };
+  }, []);
+
   // Suggestive questions to speed up user flow on desktop/mobile
   const questionSuggestions = [
     "Tell me about your breathing difficulty.",
@@ -237,6 +245,20 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
     "When did these symptoms first start?",
     "Do you have any swelling in your body?"
   ];
+
+  const clearSpeechTimeout = () => {
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+      speechTimeoutRef.current = null;
+    }
+  };
+
+  const resetSpeechTimeout = () => {
+    clearSpeechTimeout();
+    speechTimeoutRef.current = setTimeout(() => {
+      stopListening();
+    }, 10000); // 10 seconds timeout
+  };
 
   const startListening = async () => {
     try {
@@ -250,21 +272,25 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
       }
 
       setIsListening(true);
+      resetSpeechTimeout();
+
+      SpeechRecognition.addListener('partialResults', (data: any) => {
+        resetSpeechTimeout();
+        if (data.matches && data.matches.length > 0) {
+          clearSpeechTimeout();
+          setInputMessage(data.matches[0]);
+          setIsListening(false);
+          handleSendChat(data.matches[0]);
+          SpeechRecognition.removeAllListeners();
+        }
+      });
+
       await SpeechRecognition.start({
         language: "en-US",
         maxResults: 1,
         prompt: "Say something",
         partialResults: false,
         popup: false,
-      });
-
-      SpeechRecognition.addListener('partialResults', (data: any) => {
-        if (data.matches && data.matches.length > 0) {
-          setInputMessage(data.matches[0]);
-          setIsListening(false);
-          handleSendChat(data.matches[0]);
-          SpeechRecognition.removeAllListeners();
-        }
       });
     } catch (e) {
       console.error("Capacitor Speech Recognition failed. Trying Web Speech API fallback...", e);
@@ -287,6 +313,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
         recognition.maxAlternatives = 1;
 
         recognition.onresult = (event: any) => {
+          clearSpeechTimeout();
           const transcript = event.results[0][0].transcript;
           setInputMessage(transcript);
           setIsListening(false);
@@ -295,25 +322,30 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
 
         recognition.onerror = (event: any) => {
           console.error("Web Speech API error:", event.error);
+          clearSpeechTimeout();
           setIsListening(false);
         };
 
         recognition.onend = () => {
+          clearSpeechTimeout();
           setIsListening(false);
         };
 
         setIsListening(true);
+        resetSpeechTimeout();
         recognition.start();
 
       } catch (fallbackError) {
         console.error("Web Speech API fallback also failed:", fallbackError);
         alert("Speech recognition is not available or failed.");
+        clearSpeechTimeout();
         setIsListening(false);
       }
     }
   };
 
   const stopListening = async () => {
+    clearSpeechTimeout();
     try {
       await SpeechRecognition.stop();
       SpeechRecognition.removeAllListeners();
