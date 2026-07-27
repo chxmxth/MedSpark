@@ -5,6 +5,9 @@ import {
 } from "../lib/firebase";
 import { signInWithGoogle, logOutUser } from "../lib/auth";
 import RevenueCatPaywall from "./RevenueCatPaywall";
+import { Purchases } from "@revenuecat/purchases-capacitor";
+import { Purchases as PurchasesWeb } from "@revenuecat/purchases-js";
+import { Capacitor } from "@capacitor/core";
 import { 
   User, 
   ShieldCheck, 
@@ -41,6 +44,7 @@ export default function UserProfileSettings({ profile, onChangeProfile, onLoginS
 
   const [isEditing, setIsEditing] = useState(false);
   const [firebaseUser, setFirebaseUser] = useState(auth.currentUser);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // Paywall states
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
@@ -91,6 +95,46 @@ export default function UserProfileSettings({ profile, onChangeProfile, onLoginS
       isAnonymous: true,
       emailVerified: false,
     } as any);
+  };
+
+  const handleRestorePurchases = async () => {
+    try {
+      setIsRestoring(true);
+      const platform = Capacitor.getPlatform();
+
+      let restoreResult;
+
+      if (platform === "ios" || platform === "android") {
+        restoreResult = await Purchases.restorePurchases();
+      } else {
+        // Note: For web, there's no native Restore Purchases, it's tied to the login.
+        // We'll mimic the flow for a cohesive user experience.
+        if (!PurchasesWeb.isConfigured()) {
+          throw new Error("Billing system not configured yet");
+        }
+
+        // As Web doesn't have .restorePurchases(), we can just refresh the CustomerInfo
+        restoreResult = await PurchasesWeb.getSharedInstance().getCustomerInfo();
+      }
+
+      // Check if they actually have any active entitlements
+      const hasActiveSubscription =
+        (restoreResult.entitlements.active && Object.keys(restoreResult.entitlements.active).length > 0);
+
+      if (hasActiveSubscription) {
+        // You could theoretically parse which plan they have and update your local state,
+        // but typically your app would listen to the customer info stream. For this mock UI:
+        alert("Purchases restored successfully!");
+      } else {
+        alert("No previous purchases found for this account.");
+      }
+
+    } catch (error: any) {
+      console.error("Failed to restore purchases:", error);
+      alert(`Restore failed: ${error.message || "Unknown error"}`);
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   // Upgraders for RevenueCat sub simulation
@@ -234,6 +278,15 @@ export default function UserProfileSettings({ profile, onChangeProfile, onLoginS
               className="w-full py-2 bg-[#050608] border border-slate-800/80 hover:bg-slate-900 text-slate-200 hover:text-white rounded-lg text-xs font-bold transition-all font-mono uppercase tracking-wider cursor-pointer"
             >
               {isEditing ? "Save Bio Settings" : "Edit Bio settings"}
+            </button>
+
+            <button
+              onClick={handleRestorePurchases}
+              disabled={isRestoring}
+              className="w-full py-2 border border-emerald-900/50 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 font-mono uppercase tracking-wider cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCcw className={`w-3.5 h-3.5 ${isRestoring ? "animate-spin" : ""}`} />
+              {isRestoring ? "Restoring..." : "Restore Purchases"}
             </button>
 
             <button
