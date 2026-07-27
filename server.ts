@@ -439,7 +439,7 @@ app.post("/api/revenuecat/process", async (req, res) => {
     const receiptId = `rc-inv-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
     // Simulate validation with RevenueCat API matching Secret API Key check
-    const secretKey = process.env.REVENUECAT_SECRET_KEY || "sk_xNkjwgCRVWBZCKvdXjojnGOcOgAkr";
+    const secretKey = process.env.REVENUECAT_SECRET_KEY;
 
     res.json({
       success: true,
@@ -463,10 +463,10 @@ app.post("/api/revenuecat/process", async (req, res) => {
 // 🩺 API Configuration Details (including RevenueCat & UMLS check endpoints)
 app.get("/api/config/status", (req, res) => {
   res.json({
-    umlsAvailable: !!(process.env.UMLS_API_KEY || "cfdb995a-0b8e-446c-82da-3851fb209c42"),
-    revenueCatIosAvailable: !!(process.env.REVENUECAT_IOS_API_KEY || "appl_GpqdAZqMJZjAYJraWWDFzTONegb"),
+    umlsAvailable: !!process.env.UMLS_API_KEY,
+    revenueCatIosAvailable: !!process.env.REVENUECAT_IOS_API_KEY,
     revenueCatAndroidAvailable: !!(process.env.REVENUECAT_ANDROID_API_KEY),
-    revenueCatSecretAvailable: !!(process.env.REVENUECAT_SECRET_KEY || "sk_xNkjwgCRVWBZCKvdXjojnGOcOgAkr"),
+    revenueCatSecretAvailable: !!process.env.REVENUECAT_SECRET_KEY,
     geminiAvailable: !!process.env.GEMINI_API_KEY
   });
 });
@@ -1110,9 +1110,9 @@ app.post("/api/paraclinicals", async (req, res) => {
 // Endpoint to securely fetch public RevenueCat keys for the Capacitor native client
 app.get("/api/revenuecat/keys", (req, res) => {
   res.json({
-    iosKey: process.env.REVENUECAT_IOS_API_KEY || "appl_GpqdAZqMJZjAYJraWWDFzTONegb",
+    iosKey: process.env.REVENUECAT_IOS_API_KEY || "",
     androidKey: process.env.REVENUECAT_ANDROID_API_KEY || "",
-    webKey: process.env.REVENUECAT_WEB_API_KEY || "pdl_BzwxWwjuNOXOUPJirUBJlVeuRNVy"
+    webKey: process.env.REVENUECAT_WEB_API_KEY || ""
   });
 });
 
