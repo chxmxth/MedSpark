@@ -60,14 +60,32 @@ export default function App() {
         if (res.ok) {
           const keys = await res.json();
           const platform = Capacitor.getPlatform();
-          const appUserId = firebaseUser?.uid || "web_guest_user";
 
           if (platform === "ios" && keys.iosKey) {
-            await Purchases.configure({ apiKey: keys.iosKey, appUserID: appUserId });
+            if (firebaseUser?.uid) {
+              await Purchases.configure({ apiKey: keys.iosKey, appUserID: firebaseUser.uid });
+            } else {
+              await Purchases.configure({ apiKey: keys.iosKey });
+            }
           } else if (platform === "android" && keys.androidKey) {
-            await Purchases.configure({ apiKey: keys.androidKey, appUserID: appUserId });
+            if (firebaseUser?.uid) {
+              await Purchases.configure({ apiKey: keys.androidKey, appUserID: firebaseUser.uid });
+            } else {
+              await Purchases.configure({ apiKey: keys.androidKey });
+            }
           } else if (platform === "web" && keys.webKey) {
-            PurchasesWeb.configure(keys.webKey, appUserId);
+            // Note: RevenueCat web strictly requires an appUserId during configuration
+            if (firebaseUser?.uid) {
+              PurchasesWeb.configure(keys.webKey, firebaseUser.uid);
+            } else {
+              // Web doesn't auto-generate anonymously like native SDK, so fallback to UUID
+              let guestId = localStorage.getItem("rc_guest_user_id");
+              if (!guestId) {
+                guestId = crypto.randomUUID();
+                localStorage.setItem("rc_guest_user_id", guestId);
+              }
+              PurchasesWeb.configure(keys.webKey, guestId);
+            }
           }
         }
       } catch (e) {
