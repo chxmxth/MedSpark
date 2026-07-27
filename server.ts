@@ -396,69 +396,6 @@ Synthesize evidence-based medicine beautifully in Markdown. Include high-risk wa
   }
 });
 
-// 🩺 API Route: Secure RevenueCat Billing Verification
-app.post("/api/revenuecat/process", async (req, res) => {
-  try {
-    const { planName, billingDetails } = req.body;
-    if (!billingDetails) {
-      return res.status(400).json({ error: "Missing billing details for transaction verification." });
-    }
-
-    const rawCard = (billingDetails.cardNumber || "").replace(/\s+/g, "");
-    if (rawCard === "4111111111111111") {
-      return res.status(402).json({ error: "Card declined. The secure gateway reported invalid simulation credentials." });
-    }
-
-    // Expiry date validation
-    const expiry = billingDetails.expiry || "";
-    if (!/^\d{2}\/\d{2}$/.test(expiry)) {
-      return res.status(400).json({ error: "Invalid expiry date format. Expected MM/YY." });
-    }
-
-    const [monthStr, yearStr] = expiry.split("/");
-    const expMonth = parseInt(monthStr, 10);
-    const expYear = parseInt(`20${yearStr}`, 10);
-
-    if (expMonth < 1 || expMonth > 12) {
-      return res.status(400).json({ error: "Invalid expiry month. Must be between 01 and 12." });
-    }
-
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-
-    if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
-      return res.status(400).json({ error: "Card has expired." });
-    }
-
-    // High fidelity receipt calculations
-    const subtotal = planName === "Resident Pro" ? 9.99 : 29.99;
-    const taxRate = 0.08; // 8% standard healthcare sales surcharge
-    const tax = Number((subtotal * taxRate).toFixed(2));
-    const total = Number((subtotal + tax).toFixed(2));
-    const receiptId = `rc-inv-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-    // Simulate validation with RevenueCat API matching Secret API Key check
-    const secretKey = process.env.REVENUECAT_SECRET_KEY;
-
-    res.json({
-      success: true,
-      receiptId,
-      subtotal,
-      tax,
-      total,
-      planName,
-      created: new Date().toISOString(),
-      payer: billingDetails.cardholderName || "OSCE Resident",
-      last4: rawCard.slice(-4) || "4242",
-      gatewayStatus: "authorized_via_secret_handshake",
-      validationToken: Buffer.from(`${receiptId}:${secretKey}`).toString("base64")
-    });
-  } catch (err: any) {
-    console.error("RevenueCat server processing error:", err);
-    res.status(500).json({ error: err.message || "Failed to route credit card approval securely through RevenueCat." });
-  }
-});
 
 // 🩺 API Configuration Details (including RevenueCat & UMLS check endpoints)
 app.get("/api/config/status", (req, res) => {
