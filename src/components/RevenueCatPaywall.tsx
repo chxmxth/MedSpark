@@ -17,6 +17,7 @@ import { getApiUrl } from "../lib/api";
 import { Capacitor } from "@capacitor/core";
 import { Purchases } from "@revenuecat/purchases-capacitor";
 import { Purchases as PurchasesWeb } from "@revenuecat/purchases-js";
+import { auth } from "../lib/firebase";
 
 interface RevenueCatPaywallProps {
   isOpen: boolean;
@@ -48,6 +49,19 @@ export default function RevenueCatPaywall({
 
   const isNativePlatform = Capacitor.isNativePlatform();
   const isWebPlatform = Capacitor.getPlatform() === "web";
+
+  const syncVerifiedEntitlement = async () => {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) throw new Error("Sign in is required before a subscription can be activated.");
+
+    const response = await fetch(getApiUrl("/api/revenuecat/sync-entitlement"), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const verified = await response.json();
+    if (!response.ok) throw new Error(verified.error || "Unable to verify the subscription.");
+    onChangeProfile({ ...profile, ...verified });
+  };
 
   if (!isOpen) return null;
 
@@ -127,7 +141,7 @@ export default function RevenueCatPaywall({
         const entitlementKeys = Object.keys(customerInfo.entitlements.active);
 
         if (entitlementKeys.length > 0) {
-          handleSuccessfulPurchase({
+          await handleSuccessfulPurchase({
             receiptId: "web_paddle_checkout",
             customerInfo
           });
@@ -215,21 +229,8 @@ export default function RevenueCatPaywall({
                payer: profile.firstName + " " + profile.lastName,
                subtotal: parseFloat(currentPlan.price.replace("$", ""))
              });
-
-             let role: "student" | "pro" | "faculty" = "student";
-             if (selectedPlan === "Resident Pro") {
-               role = "pro";
-             } else if (selectedPlan === "Faculty Advisor") {
-               role = "faculty";
-             }
-
+             await syncVerifiedEntitlement();
              setStatus("success");
-             onChangeProfile({
-               ...profile,
-               role,
-               subscriptionPlan: selectedPlan,
-               subscriptionActive: true
-             });
           } else {
              throw new Error("Purchase was successful but no active entitlements were found.");
           }
@@ -242,7 +243,7 @@ export default function RevenueCatPaywall({
       }
   };
 
-  const handleSuccessfulPurchase = ({ receiptId, customerInfo }: any) => {
+  const handleSuccessfulPurchase = async ({ receiptId }: any) => {
     setReceipt({
       receiptId,
       planName: selectedPlan,
@@ -253,20 +254,8 @@ export default function RevenueCatPaywall({
       total: parseFloat(currentPlan.price.replace("$", ""))
     });
 
-    let role: "student" | "pro" | "faculty" = "student";
-    if (selectedPlan === "Resident Pro") {
-      role = "pro";
-    } else if (selectedPlan === "Faculty Advisor") {
-      role = "faculty";
-    }
-
+    await syncVerifiedEntitlement();
     setStatus("success");
-    onChangeProfile({
-      ...profile,
-      role,
-      subscriptionPlan: selectedPlan,
-      subscriptionActive: true
-    });
   };
 
   return (
