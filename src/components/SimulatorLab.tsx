@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 import { TextToSpeech } from "@capacitor-community/text-to-speech";
+import { Capacitor } from "@capacitor/core";
 
 interface LabProps {
   onEvaluationCompleted: (evaluation: CaseEvaluation) => void;
@@ -260,27 +261,70 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
     }, 10000); // 10 seconds timeout
   };
 
+  const startWebListening = () => {
+    const WebSpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!WebSpeechRecognition) {
+      alert("Speech recognition is not available in this browser.");
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new WebSpeechRecognition();
+    webSpeechRecognitionRef.current = recognition;
+    recognition.lang = "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event: any) => {
+      clearSpeechTimeout();
+      const transcript = event.results[0][0].transcript;
+      setInputMessage(transcript);
+      setIsListening(false);
+      handleSendChat(transcript);
+    };
+    recognition.onerror = (event: any) => {
+      console.error("Web Speech API error:", event.error);
+      clearSpeechTimeout();
+      setIsListening(false);
+    };
+    recognition.onend = () => {
+      clearSpeechTimeout();
+      setIsListening(false);
+    };
+
+    setIsListening(true);
+    resetSpeechTimeout();
+    recognition.start();
+  };
+
   const startListening = async () => {
+    // The Capacitor plugin is not implemented in web browsers. Choose the
+    // browser API first so ordinary web sessions do not emit a false error.
+    if (!Capacitor.isNativePlatform()) {
+      startWebListening();
+      return;
+    }
+
     try {
       const { speechRecognition } = await SpeechRecognition.checkPermissions();
-      if (speechRecognition !== 'granted') {
+      if (speechRecognition !== "granted") {
         const req = await SpeechRecognition.requestPermissions();
-        if (req.speechRecognition !== 'granted') {
-          alert('Speech recognition permission denied.');
+        if (req.speechRecognition !== "granted") {
+          alert("Speech recognition permission denied.");
           return;
         }
       }
 
       setIsListening(true);
       resetSpeechTimeout();
-
-      SpeechRecognition.addListener('partialResults', (data: any) => {
+      await SpeechRecognition.removeAllListeners();
+      await SpeechRecognition.addListener("partialResults", (data: any) => {
         resetSpeechTimeout();
-        if (data.matches && data.matches.length > 0) {
+        if (data.matches?.length) {
           clearSpeechTimeout();
-          setInputMessage(data.matches[0]);
+          const transcript = data.matches[0];
+          setInputMessage(transcript);
           setIsListening(false);
-          handleSendChat(data.matches[0]);
+          handleSendChat(transcript);
           SpeechRecognition.removeAllListeners();
         }
       });
@@ -292,56 +336,36 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
         partialResults: false,
         popup: false,
       });
-    } catch (e) {
-      console.error("Capacitor Speech Recognition failed. Trying Web Speech API fallback...", e);
-
-      // Web Speech API fallback
-      const SpeechRecognitionFallback = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-
-      if (!SpeechRecognitionFallback) {
-        alert("Speech recognition is not available in this browser.");
-        setIsListening(false);
-        return;
-      }
-
-      try {
-        const recognition = new SpeechRecognitionFallback();
-        webSpeechRecognitionRef.current = recognition;
-
-        recognition.lang = 'en-US';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        recognition.onresult = (event: any) => {
-          clearSpeechTimeout();
-          const transcript = event.results[0][0].transcript;
-          setInputMessage(transcript);
-          setIsListening(false);
-          handleSendChat(transcript);
-        };
-
-        recognition.onerror = (event: any) => {
-          console.error("Web Speech API error:", event.error);
-          clearSpeechTimeout();
-          setIsListening(false);
-        };
-
-        recognition.onend = () => {
-          clearSpeechTimeout();
-          setIsListening(false);
-        };
-
-        setIsListening(true);
-        resetSpeechTimeout();
-        recognition.start();
-
-      } catch (fallbackError) {
-        console.error("Web Speech API fallback also failed:", fallbackError);
-        alert("Speech recognition is not available or failed.");
-        clearSpeechTimeout();
-        setIsListening(false);
-      }
+    } catch (error) {
+      console.error("Native speech recognition failed:", error);
+      clearSpeechTimeout();
+      setIsListening(false);
+      alert("Speech recognition could not start. Please try again.");
     }
+  };
+
+  const speakPatientResponse = (text: string) => {
+    // Browser speech does not require a microphone permission and must not
+    // automatically start recording after a patient answer.
+    if (!Capacitor.isNativePlatform()) {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = "en-US";
+        utterance.rate = 1;
+        window.speechSynthesis.speak(utterance);
+      }
+      return;
+    }
+
+    void TextToSpeech.speak({
+      text,
+      lang: "en-US",
+      rate: 1,
+      pitch: 1,
+      volume: 1,
+      category: "ambient",
+    }).catch((error) => console.error("TTS error:", error));
   };
 
   const stopListening = async () => {
@@ -415,19 +439,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
       };
       setMessages((prev) => [...prev, patientResponse]);
 
-      try {
-        await TextToSpeech.speak({
-          text: patientResponse.text,
-          lang: 'en-US',
-          rate: 1.0,
-          pitch: 1.0,
-          volume: 1.0,
-          category: 'ambient',
-        });
-        startListening();
-      } catch(ttsError) {
-        console.error("TTS error:", ttsError);
-      }
+      speakPatientResponse(patientResponse.text);
     } catch (err) {
       console.error(err);
       const errResponse: Message = {
@@ -438,19 +450,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
       };
       setMessages((prev) => [...prev, errResponse]);
 
-      try {
-        await TextToSpeech.speak({
-          text: errResponse.text,
-          lang: 'en-US',
-          rate: 1.0,
-          pitch: 1.0,
-          volume: 1.0,
-          category: 'ambient',
-        });
-        startListening();
-      } catch(ttsError) {
-        console.error("TTS error:", ttsError);
-      }
+      speakPatientResponse(errResponse.text);
     } finally {
       setIsPatientTyping(false);
     }
@@ -845,7 +845,7 @@ export default function SimulatorLab({ onEvaluationCompleted, userProfile, decre
         </div>
 
         {/* Suggestion Prompts Row */}
-        <div className="p-3 border-t border-slate-800/60 bg-[#0A0C10] overflow-x-auto flex gap-2 whitespace-nowrap scrollbar-none scroll-smooth shrink-0">
+        <div className="p-3 border-t border-slate-800/60 bg-[#0A0C10] overflow-x-auto flex gap-2 whitespace-nowrap scrollbar-none scroll-smooth shrink-0 snap-x touch-pan-x">
           {questionSuggestions.map((q, idx) => (
             <button
               key={idx}

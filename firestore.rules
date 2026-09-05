@@ -41,6 +41,16 @@ service cloud.firestore {
       return hasRequired && validTypes && validTopics && validPreferredQuestions && hasOnlyAllowedKeys;
     }
 
+    function hasSafeProfileUpdate(data, previous) {
+      // Billing entitlements and counters are authoritative server data. The
+      // client may edit its profile, but cannot promote itself or reset usage.
+      return data.role == previous.role
+          && data.subscriptionActive == previous.subscriptionActive
+          && data.subscriptionPlan == previous.subscriptionPlan
+          && data.casesCompleted >= previous.casesCompleted
+          && data.assistantQueriesUsed >= previous.assistantQueriesUsed;
+    }
+
     // Case Evaluation Validation Helper
     function isValidCaseEvaluation(data) {
       let hasRequired = data.keys().hasAll(['id', 'caseName', 'caseId', 'patientName', 'studentSubmission', 'aiFeedback', 'score', 'createdAt']);
@@ -66,8 +76,16 @@ service cloud.firestore {
     // Collection Security Match Rules
     match /users/{userId} {
       allow get: if isOwner(userId) && isValidId(userId);
-      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data);
-      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(request.resource.data);
+      allow create: if isOwner(userId) && isValidId(userId)
+          && isValidUserProfile(request.resource.data)
+          && request.resource.data.role == "student"
+          && request.resource.data.subscriptionActive == false
+          && request.resource.data.subscriptionPlan == "Free Tier"
+          && request.resource.data.casesCompleted == 0
+          && request.resource.data.assistantQueriesUsed == 0;
+      allow update: if isOwner(userId) && isValidId(userId)
+          && isValidUserProfile(request.resource.data)
+          && hasSafeProfileUpdate(request.resource.data, resource.data);
       allow delete: if false;
 
       match /evaluations/{evalId} {

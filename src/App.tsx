@@ -292,7 +292,7 @@ export default function App() {
             }`}
           >
             <History className="w-4 h-4 shrink-0" />
-            Encounts History
+            Encounters History
           </button>
 
           <button

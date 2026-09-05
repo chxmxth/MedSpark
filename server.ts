@@ -3,11 +3,102 @@ import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { getAuth as getAdminAuth } from "firebase-admin/auth";
+import { getFirestore as getAdminFirestore } from "firebase-admin/firestore";
 
 dotenv.config();
 
 const app = express();
-app.use(express.json());
+app.set("trust proxy", 1);
+app.use(express.json({ limit: "64kb" }));
+
+type RateLimitEntry = { count: number; resetAt: number };
+function createRateLimiter(maxRequests: number, windowMs: number) {
+  const buckets = new Map<string, RateLimitEntry>();
+
+  return (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const now = Date.now();
+    const key = req.ip || "unknown";
+    const entry = buckets.get(key);
+
+    if (!entry || entry.resetAt <= now) {
+      buckets.set(key, { count: 1, resetAt: now + windowMs });
+      return next();
+    }
+
+    if (entry.count >= maxRequests) {
+      res.setHeader("Retry-After", Math.ceil((entry.resetAt - now) / 1000));
+      return res.status(429).json({ error: "Too many requests. Please try again later." });
+    }
+
+    entry.count += 1;
+    return next();
+  };
+}
+
+// A broad API cap plus a stricter cap for endpoints that can incur AI costs.
+// This is intentionally dependency-free so it works in the current deployment.
+app.use("/api", createRateLimiter(120, 15 * 60 * 1000));
+app.use(
+  ["/api/patient/chat", "/api/board/evaluate", "/api/paraclinical/evaluate", "/api/assistant/chat", "/api/cases/generate-random", "/api/cases/generate-topic"],
+  createRateLimiter(20, 15 * 60 * 1000),
+);
+
+function getAuthenticatedUserId(req: express.Request): Promise<string | null> {
+  const authorization = req.headers.authorization;
+  const token = authorization?.startsWith("Bearer ") ? authorization.slice(7) : null;
+  if (!token) return Promise.resolve(null);
+
+  try {
+    if (!getApps().length) initializeApp();
+    return getAdminAuth().verifyIdToken(token).then((decoded) => decoded.uid).catch(() => null);
+  } catch {
+    return Promise.resolve(null);
+  }
+}
+
+function planFromEntitlements(entitlements: Record<string, { expires_date?: string | null }>) {
+  const now = Date.now();
+  const active = Object.entries(entitlements)
+    .filter(([, entitlement]) => !entitlement.expires_date || Date.parse(entitlement.expires_date) > now)
+    .map(([id]) => id);
+
+  const facultyId = process.env.REVENUECAT_FACULTY_ENTITLEMENT_ID || "faculty_advisor";
+  const proId = process.env.REVENUECAT_PRO_ENTITLEMENT_ID || "resident_pro";
+  if (active.includes(facultyId)) return { role: "faculty", subscriptionPlan: "Faculty Advisor", subscriptionActive: true };
+  if (active.includes(proId)) return { role: "pro", subscriptionPlan: "Resident Pro", subscriptionActive: true };
+  return { role: "student", subscriptionPlan: "Free Tier", subscriptionActive: false };
+}
+
+app.post("/api/revenuecat/sync-entitlement", async (req, res) => {
+  const userId = await getAuthenticatedUserId(req);
+  const secret = process.env.REVENUECAT_SECRET_KEY;
+  if (!userId) return res.status(401).json({ error: "Sign in is required to sync a subscription." });
+  if (!secret) return res.status(503).json({ error: "Subscription verification is not configured." });
+
+  try {
+    const revenueCatResponse = await fetch(
+      `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(userId)}`,
+      { headers: { Authorization: `Bearer ${secret}` } },
+    );
+    if (!revenueCatResponse.ok) throw new Error(`RevenueCat returned ${revenueCatResponse.status}`);
+
+    const payload = await revenueCatResponse.json() as { subscriber?: { entitlements?: Record<string, { expires_date?: string | null }> } };
+    const entitlement = planFromEntitlements(payload.subscriber?.entitlements || {});
+    if (!getApps().length) initializeApp();
+
+    const profileRef = getAdminFirestore().collection("users").doc(userId);
+    const profile = await profileRef.get();
+    if (!profile.exists) return res.status(404).json({ error: "User profile was not found." });
+
+    await profileRef.update(entitlement);
+    return res.json(entitlement);
+  } catch (error) {
+    console.error("RevenueCat entitlement sync failed:", error);
+    return res.status(502).json({ error: "Unable to verify the subscription." });
+  }
+});
 
 const PORT = Number(process.env.PORT) || 3000;
 

@@ -140,19 +140,12 @@ export default function UserProfileSettings({ profile, onChangeProfile, onLoginS
   // Upgraders for RevenueCat sub simulation
   const handleUpgradeTier = (planName: "Free Tier" | "Resident Pro" | "Faculty Advisor") => {
     if (planName === "Free Tier") {
-      const confirmDowngrade = window.confirm("Are you sure you want to contract your limits back to Free Tier?");
-      if (!confirmDowngrade) return;
-      onChangeProfile({
-        ...profile,
-        role: "student",
-        subscriptionPlan: "Free Tier",
-        subscriptionActive: false,
-      });
-      alert("Billing downgraded to Free Tier.");
-    } else {
-      setPendingPlan(planName);
-      setIsPaywallOpen(true);
+      alert("To change or cancel a subscription, use the original billing provider. Your access level will update after RevenueCat verifies the change.");
+      return;
     }
+
+    setPendingPlan(planName);
+    setIsPaywallOpen(true);
   };
 
 
@@ -304,7 +297,7 @@ export default function UserProfileSettings({ profile, onChangeProfile, onLoginS
             <CreditCard className="w-4 h-4" /> RevenueCat Plans
           </h4>
           <p className="text-[11px] text-slate-400 mb-4 leading-relaxed font-semibold">
-            Simulate RevenueCat payment hooks dynamically. Select billing level tiers to immediately adjust case limits:
+            Purchase through RevenueCat. Access levels update only after the server verifies an active entitlement:
           </p>
 
           <div className="flex flex-col gap-2 font-mono text-xs font-bold">
